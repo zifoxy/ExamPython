@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .models import Category, Dish, OrderItem
+from .models import Category, Dish, OrderItem, Profile
 from .cart import Cart
-from .forms import OrderCreateForm
+from .forms import OrderCreateForm, DishForm
+from .decorators import role_required
 
 
 def menu(request):
@@ -77,4 +78,20 @@ def order_create(request):
 def order_success(request, order_id):
     return render(request, 'restaurant/order_success.html', {
         'order_id': order_id,
+    })
+
+@role_required(Profile.ROLE_MODERATOR)
+def dish_create(request):
+    if request.method == 'POST':
+        form = DishForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Блюдо успешно создано')
+            return redirect('menu')
+    else:
+        form = DishForm()
+    
+    return render(request, 'restaurant/moderator/dish_form.html', {
+        'form': form,
+        'title': 'Добавить блюдо',
     })
