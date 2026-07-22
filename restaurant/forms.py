@@ -1,4 +1,7 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
 from .models import Order, Dish
 
 
@@ -26,6 +29,7 @@ class OrderCreateForm(forms.ModelForm):
             }),
         }
 
+
 class DishForm(forms.ModelForm):
     class Meta:
         model = Dish
@@ -34,7 +38,26 @@ class DishForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'price': forms.NumberImput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'is_available': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class RegisterForm(UserCreationForm):
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'}),
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].widget.attrs.update({'class': 'form-control'})
+        self.fields['password2'].widget.attrs.update({'class': 'form-control'})

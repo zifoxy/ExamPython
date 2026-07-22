@@ -22,14 +22,37 @@
           <li class="nav-item">
             <a class="nav-link" href="{% url 'menu' %}">Меню</a>
           </li>
-        </ul>
-        <a class="btn btn-warning" href="{% url 'cart_detail' %}">
-          <i class="bi bi-cart3"></i>
-          Корзина
-          {% if cart_count %}
-            <span class="badge text-bg-dark">{{ cart_count }}</span>
+          {% if user.is_authenticated %}
+            {% if is_moderator %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'dish_create' %}">Добавить блюдо</a>
+              </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'cabinet' %}">Кабинет</a>
+            </li>
           {% endif %}
-        </a>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          {% if user.is_authenticated %}
+            <span class="text-white-50 small d-none d-md-inline">{{ user.username }}</span>
+            <form method="post" action="{% url 'logout' %}" class="m-0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-light btn-sm">Выйти</button>
+            </form>
+          {% else %}
+            <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Вход</a>
+            <a class="btn btn-light btn-sm" href="{% url 'register' %}">Регистрация</a>
+          {% endif %}
+          <a class="btn btn-warning" href="{% url 'cart_detail' %}">
+            <i class="bi bi-cart3"></i>
+            Корзина
+            {% if cart_count %}
+              <span class="badge text-bg-dark">{{ cart_count }}</span>
+            {% endif %}
+          </a>
+        </div>
       </div>
     </div>
   </nav>

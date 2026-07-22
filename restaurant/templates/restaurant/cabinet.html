@@ -1,0 +1,47 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Личный кабинет</h1>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <p class="mb-1"><strong>Логин:</strong> {{ user.username }}</p>
+    <p class="mb-1"><strong>Email:</strong> {{ user.email|default:"—" }}</p>
+    <p class="mb-0">
+      <strong>Роль:</strong>
+      {% if profile %}{{ profile.get_role_display }}{% else %}Пользователь{% endif %}
+    </p>
+  </div>
+</div>
+
+<h2 class="h4 mb-3">Мои заказы</h2>
+{% if orders %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Дата</th>
+          <th>Статус</th>
+          <th>Сумма</th>
+          <th>Адрес</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>{{ order.id }}</td>
+            <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ order.get_status_display }}</td>
+            <td>{{ order.total_price }} ₽</td>
+            <td>{{ order.address }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary">Заказов пока нет. <a href="{% url 'menu' %}">Перейти в меню</a></div>
+{% endif %}
+{% endblock %}
