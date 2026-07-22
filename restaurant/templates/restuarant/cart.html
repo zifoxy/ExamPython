@@ -2,48 +2,62 @@
 {% block title %}Корзина{% endblock %}
 
 {% block content %}
-<h1>Корзина</h1>
+<h1 class="mb-4">Корзина</h1>
 
 {% if cart|length == 0 %}
-  <p class="muted" style="margin-top:1rem;">Корзина пуста. <a href="{% url 'menu' %}">К меню</a></p>
+  <div class="alert alert-secondary">
+    Корзина пуста. <a href="{% url 'menu' %}" class="alert-link">Перейти в меню</a>
+  </div>
 {% else %}
-  <table>
-    <thead>
-      <tr>
-        <th>Блюдо</th>
-        <th>Цена</th>
-        <th>Кол-во</th>
-        <th>Сумма</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in cart %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
         <tr>
-          <td>{{ item.dish.name }}</td>
-          <td>{{ item.price }} ₽</td>
-          <td>
-            <form method="post" action="{% url 'cart_update' item.dish.id %}" style="display:flex; gap:.5rem;">
-              {% csrf_token %}
-              <input class="form-control" style="width:70px; margin:0;" type="number" name="quantity" value="{{ item.quantity }}" min="1">
-              <button class="btn" type="submit">OK</button>
-            </form>
-          </td>
-          <td>{{ item.total }} ₽</td>
-          <td>
-            <form method="post" action="{% url 'cart_remove' item.dish.id %}">
-              {% csrf_token %}
-              <button class="btn" type="submit" style="background:#6b2d2d;">Удалить</button>
-            </form>
-          </td>
+          <th>Блюдо</th>
+          <th>Цена</th>
+          <th style="width: 180px;">Кол-во</th>
+          <th>Сумма</th>
+          <th></th>
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for item in cart %}
+          <tr>
+            <td class="fw-semibold">{{ item.dish.name }}</td>
+            <td>{{ item.price }} ₽</td>
+            <td>
+              <form method="post" action="{% url 'cart_update' item.dish.id %}" class="d-flex gap-2">
+                {% csrf_token %}
+                <input class="form-control form-control-sm" type="number"
+                       name="quantity" value="{{ item.quantity }}" min="1" style="width: 70px;">
+                <button class="btn btn-sm btn-outline-primary" type="submit">OK</button>
+              </form>
+            </td>
+            <td>{{ item.total }} ₽</td>
+            <td>
+              <form method="post" action="{% url 'cart_remove' item.dish.id %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" type="submit">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  <p style="font-size:1.3rem; margin:1rem 0;">
-    Итого: <strong>{{ cart.get_total_price }} ₽</strong>
-  </p>
-  <a class="btn" href="{% url 'order_create' %}">Оформить заказ</a>
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+    <p class="fs-4 mb-0">
+      Итого: <span class="text-danger fw-bold">{{ cart.get_total_price }} ₽</span>
+    </p>
+    <div class="d-flex gap-2">
+      <a href="{% url 'menu' %}" class="btn btn-outline-secondary">К меню</a>
+      <a href="{% url 'order_create' %}" class="btn btn-success btn-lg">
+        Оформить заказ
+      </a>
+    </div>
+  </div>
 {% endif %}
 {% endblock %}
