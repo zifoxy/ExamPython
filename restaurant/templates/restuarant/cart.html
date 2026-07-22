@@ -1,0 +1,49 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+<h1>Корзина</h1>
+
+{% if cart|length == 0 %}
+  <p class="muted" style="margin-top:1rem;">Корзина пуста. <a href="{% url 'menu' %}">К меню</a></p>
+{% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Блюдо</th>
+        <th>Цена</th>
+        <th>Кол-во</th>
+        <th>Сумма</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart %}
+        <tr>
+          <td>{{ item.dish.name }}</td>
+          <td>{{ item.price }} ₽</td>
+          <td>
+            <form method="post" action="{% url 'cart_update' item.dish.id %}" style="display:flex; gap:.5rem;">
+              {% csrf_token %}
+              <input class="form-control" style="width:70px; margin:0;" type="number" name="quantity" value="{{ item.quantity }}" min="1">
+              <button class="btn" type="submit">OK</button>
+            </form>
+          </td>
+          <td>{{ item.total }} ₽</td>
+          <td>
+            <form method="post" action="{% url 'cart_remove' item.dish.id %}">
+              {% csrf_token %}
+              <button class="btn" type="submit" style="background:#6b2d2d;">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="font-size:1.3rem; margin:1rem 0;">
+    Итого: <strong>{{ cart.get_total_price }} ₽</strong>
+  </p>
+  <a class="btn" href="{% url 'order_create' %}">Оформить заказ</a>
+{% endif %}
+{% endblock %}

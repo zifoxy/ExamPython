@@ -1,0 +1,39 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Меню — FireBite{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Меню</h1>
+
+{% for category in categories %}
+  <section style="margin-bottom: 2.5rem;">
+    <h2 style="margin-bottom: 1rem;">{{ category.name }}</h2>
+    <div class="grid">
+      {% for dish in category.dishes.all %}
+        {% if dish.is_available %}
+          <article class="card">
+            {% if dish.image %}
+              <img src="{{ dish.image.url }}" alt="{{ dish.name }}">
+            {% else %}
+              <img src="https://placehold.co/400x160/2a221c/a89888?text=Блюдо" alt="">
+            {% endif %}
+            <div class="card-body">
+              <h3><a href="{% url 'dish_detail' dish.pk %}">{{ dish.name }}</a></h3>
+              <p class="muted">{{ dish.description|truncatewords:12 }}</p>
+              <p class="price">{{ dish.price }} ₽</p>
+              <form method="post" action="{% url 'cart_add' dish.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'menu' %}">
+                <button class="btn" type="submit">В корзину</button>
+              </form>
+            </div>
+          </article>
+        {% endif %}
+      {% empty %}
+        <p class="muted">Пока нет блюд</p>
+      {% endfor %}
+    </div>
+  </section>
+{% empty %}
+  <p>Меню пока пустое. Добавь категории и блюда в <a href="/admin/">админке</a>.</p>
+{% endfor %}
+{% endblock %}

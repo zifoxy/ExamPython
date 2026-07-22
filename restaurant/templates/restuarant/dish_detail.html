@@ -1,0 +1,26 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}{{ dish.name }}{% endblock %}
+
+{% block content %}
+<article style="display:grid; gap:1.5rem; grid-template-columns: 1fr 1fr;">
+  <div>
+    {% if dish.image %}
+      <img src="{{ dish.image.url }}" alt="{{ dish.name }}"
+           style="width:100%; border-radius:10px;">
+    {% endif %}
+  </div>
+  <div>
+    <p class="muted">{{ dish.category.name }}</p>
+    <h1>{{ dish.name }}</h1>
+    <p style="margin:1rem 0;">{{ dish.description }}</p>
+    <p class="price" style="font-size:1.4rem;">{{ dish.price }} ₽</p>
+    <form method="post" action="{% url 'cart_add' dish.id %}">
+      {% csrf_token %}
+      <label>Количество
+        <input class="form-control" type="number" name="quantity" value="1" min="1" style="width:100px;">
+      </label>
+      <button class="btn" type="submit">Добавить в корзину</button>
+    </form>
+  </div>
+</article>
+{% endblock %}

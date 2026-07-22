@@ -1,0 +1,10 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Заказ принят{% endblock %}
+
+{% block content %}
+<div style="text-align:center; padding:3rem 1rem;">
+  <h1>Заказ #{{ order_id }} принят!</h1>
+  <p class="muted" style="margin:1rem 0;">Мы уже готовим. Курьер скоро будет у вас.</p>
+  <a class="btn" href="{% url 'menu' %}">Вернуться в меню</a>
+</div>
+{% endblock %}

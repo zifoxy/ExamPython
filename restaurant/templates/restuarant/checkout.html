@@ -1,0 +1,16 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Оформление{% endblock %}
+
+{% block content %}
+<h1>Оформление доставки</h1>
+
+<p class="muted" style="margin:1rem 0;">
+  К оплате: <strong style="color:var(--accent);">{{ cart.get_total_price }} ₽</strong>
+</p>
+
+<form method="post" style="max-width:480px;">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn" type="submit">Отправить заказ</button>
+</form>
+{% endblock %}
