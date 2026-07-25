@@ -16,11 +16,43 @@
       <hr>
       <a href="{% url 'accountant_ingredients' %}" class="btn btn-sm btn-primary">Склад и ревизия</a>
       <a href="{% url 'accountant_consumption' %}" class="btn btn-sm btn-outline-primary">Отчёт по расходу</a>
+      <a href="{% url 'accountant_revision_blank' %}" class="btn btn-sm btn-outline-warning">Бланк ревизии</a>
     {% endif %}
   </div>
 </div>
 
-<h2 class="h4 mb-3">Мои заказы</h2>
+<h2 class="h4 mb-3">Корзина</h2>
+{% if cart|length %}
+  <div class="table-responsive mb-2">
+    <table class="table table-sm table-hover align-middle bg-white shadow-sm">
+      <thead class="table-secondary">
+        <tr>
+          <th>Блюдо</th>
+          <th>Кол-во</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart %}
+          <tr>
+            <td>{{ item.dish.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.total }} ₽</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="fw-semibold">Итого: {{ cart.get_total_price }} ₽</p>
+  <a href="{% url 'cart_detail' %}" class="btn btn-sm btn-outline-primary">Изменить корзину</a>
+  <a href="{% url 'order_create' %}" class="btn btn-sm btn-primary">Оформить заказ</a>
+{% else %}
+  <div class="alert alert-secondary">
+    Корзина пуста. <a href="{% url 'menu' %}" class="alert-link">Перейти в меню</a>
+  </div>
+{% endif %}
+
+<h2 class="h4 mt-4 mb-3">История покупок</h2>
 {% if orders %}
   <div class="table-responsive">
     <table class="table table-hover align-middle bg-white shadow-sm">
@@ -31,6 +63,7 @@
           <th>Статус</th>
           <th>Сумма</th>
           <th>Адрес</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -41,12 +74,19 @@
             <td>{{ order.get_status_display }}</td>
             <td>{{ order.total_price }} ₽</td>
             <td>{{ order.address }}</td>
+            <td>
+              <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-secondary">
+                Состав
+              </a>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 {% else %}
-  <div class="alert alert-secondary">Заказов пока нет. <a href="{% url 'menu' %}">Перейти в меню</a></div>
+  <div class="alert alert-secondary">
+    Заказов пока нет. <a href="{% url 'menu' %}" class="alert-link">Перейти в меню</a>
+  </div>
 {% endif %}
 {% endblock %}

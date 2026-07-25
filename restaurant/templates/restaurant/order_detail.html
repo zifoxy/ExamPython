@@ -1,0 +1,55 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Заказ #{{ order.id }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'cabinet' %}">Кабинет</a></li>
+    <li class="breadcrumb-item active">Заказ #{{ order.id }}</li>
+  </ol>
+</nav>
+
+<h1 class="mb-3">Заказ #{{ order.id }}</h1>
+<p class="text-muted mb-4">
+  {{ order.created_at|date:"d.m.Y H:i" }} ·
+  {{ order.get_status_display }} ·
+  {{ order.total_price }} ₽
+</p>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <p class="mb-1"><strong>Имя:</strong> {{ order.customer_name }}</p>
+    <p class="mb-1"><strong>Телефон:</strong> {{ order.phone }}</p>
+    <p class="mb-1"><strong>Адрес:</strong> {{ order.address }}</p>
+    {% if order.comment %}
+      <p class="mb-0"><strong>Комментарий:</strong> {{ order.comment }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<h2 class="h5 mb-3">Состав заказа</h2>
+<div class="table-responsive">
+  <table class="table table-hover align-middle bg-white shadow-sm">
+    <thead class="table-dark">
+      <tr>
+        <th>Блюдо</th>
+        <th>Цена</th>
+        <th>Кол-во</th>
+        <th>Сумма</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in order.items.all %}
+        <tr>
+          <td>{{ item.dish_name }}</td>
+          <td>{{ item.price }} ₽</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.subtotal }} ₽</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<a href="{% url 'cabinet' %}" class="btn btn-outline-secondary">← В кабинет</a>
+{% endblock %}

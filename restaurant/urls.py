@@ -18,6 +18,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='restaurant/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('cabinet/', views.cabinet, name='cabinet'),
+    path('cabinet/orders/<int:order_id>/', views.order_detail, name='order_detail'),
 
     # Модератор
     path('moderator/dishes/add/', views.dish_create, name='dish_create'),

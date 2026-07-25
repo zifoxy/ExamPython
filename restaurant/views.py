@@ -87,12 +87,15 @@ def order_create(request):
         messages.warning(request, 'Корзина пуста')
         return redirect('menu')
 
+    if not request.user.is_authenticated:
+        messages.info(request, 'Войдите, чтобы оформить заказ и видеть его в личном кабинете')
+        return redirect(f"{reverse('login')}?next={reverse('order_create')}")
+
     if request.method == 'POST':
         form = OrderCreateForm(request.POST)
         if form.is_valid():
             order = form.save(commit=False)
-            if request.user.is_authenticated:
-                order.user = request.user
+            order.user = request.user
             order.total_price = cart.get_total_price()
             order.save()
             for item in cart:
@@ -106,7 +109,9 @@ def order_create(request):
             cart.clear()
             return redirect('order_success', order_id=order.id)
     else:
-        form = OrderCreateForm()
+        form = OrderCreateForm(initial={
+            'customer_name': request.user.get_full_name() or request.user.username,
+        })
 
     return render(request, 'restaurant/checkout.html', {
         'cart': cart,
@@ -139,7 +144,7 @@ def register(request):
             user = form.save()
             login(request, user)
             messages.success(request, 'Регистрация успешна')
-            return redirect('menu')
+            return redirect('cabinet')
     else:
         form = RegisterForm()
 
@@ -148,11 +153,30 @@ def register(request):
 
 @login_required
 def cabinet(request):
-    orders = Order.objects.filter(user=request.user).prefetch_related('items')
     profile = getattr(request.user, 'profile', None)
+    orders = (
+        Order.objects
+        .filter(user=request.user)
+        .prefetch_related('items')
+        .order_by('-created_at')
+    )
+    cart = Cart(request)
     return render(request, 'restaurant/cabinet.html', {
-        'orders': orders,
         'profile': profile,
+        'orders': orders,
+        'cart': cart,
+    })
+
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items'),
+        pk=order_id,
+        user=request.user,
+    )
+    return render(request, 'restaurant/order_detail.html', {
+        'order': order,
     })
 
 
