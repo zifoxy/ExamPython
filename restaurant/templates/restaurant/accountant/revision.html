@@ -16,7 +16,7 @@
         <h1 class="h3 mb-3">Ревизия: {{ ingredient.name }}</h1>
         <p class="text-muted mb-4">
           Учётный остаток:
-          <strong>{{ ingredient.stock_quantity }} {{ ingredient.unit }}</strong>
+          <strong>{{ ingredient.stock_quantity }} {{ ingredient.get_unit_display }}</strong>
         </p>
         <p class="small text-muted mb-4">
           Введите фактическое количество на полке. В историю запишется разница

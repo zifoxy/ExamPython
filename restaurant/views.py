@@ -270,7 +270,7 @@ def accountant_revision(request, pk):
             )
             messages.success(
                 request,
-                f'Ревизия «{ingredient.name}»: остаток = {form.cleaned_data["actual_quantity"]} {ingredient.unit}',
+                f'Ревизия «{ingredient.name}»: остаток = {form.cleaned_data["actual_quantity"]} {ingredient.get_unit_display()}',
             )
             return redirect('accountant_ingredients')
     else:
@@ -312,7 +312,7 @@ def accountant_consumption(request):
         for ri in oi.dish.recipe_items.all():
             ing = ri.igridients
             totals[ing.pk]['name'] = ing.name
-            totals[ing.pk]['unit'] = ing.unit
+            totals[ing.pk]['unit'] = ing.get_unit_display()
             totals[ing.pk]['quantity'] += ri.quantity * oi.quantity
 
     rows = sorted(totals.values(), key=lambda r: r['name'].lower())

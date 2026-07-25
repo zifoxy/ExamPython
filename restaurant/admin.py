@@ -29,7 +29,9 @@ class DishAdmin(admin.ModelAdmin):
 @admin.register(Igridients)
 class IgridientsAdmin(admin.ModelAdmin):
     list_display = ('name', 'unit', 'stock_quantity')
+    list_filter = ('unit',)
     search_fields = ('name',)
+    list_editable = ('unit', 'stock_quantity')
 
 
 @admin.register(StockMovement)

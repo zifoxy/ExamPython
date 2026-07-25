@@ -30,7 +30,7 @@
         {% for item in ingredients %}
           <tr>
             <td>{{ item.name }}</td>
-            <td>{{ item.unit }}</td>
+            <td>{{ item.get_unit_display }}</td>
             <td>{{ item.stock_quantity }}</td>
             <td class="text-end">
               <a href="{% url 'accountant_revision' item.pk %}" class="btn btn-sm btn-warning">

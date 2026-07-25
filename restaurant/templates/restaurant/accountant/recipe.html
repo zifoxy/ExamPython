@@ -27,7 +27,7 @@
           <tr>
             <td>{{ item.igridients.name }}</td>
             <td>{{ item.quantity }}</td>
-            <td>{{ item.igridients.unit }}</td>
+            <td>{{ item.igridients.get_unit_display }}</td>
           </tr>
         {% endfor %}
       </tbody>

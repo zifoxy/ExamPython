@@ -53,7 +53,7 @@ class RecipeItemForm(forms.ModelForm):
         fields = ('igridients', 'quantity')
         labels = {
             'igridients': 'Ингредиент',
-            'quantity': 'Количество (г / мл)',
+            'quantity': 'Количество',
         }
         widgets = {
             'igridients': forms.Select(attrs={'class': 'form-select form-select-sm'}),

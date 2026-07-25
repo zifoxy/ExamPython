@@ -126,15 +126,30 @@ class OrderItem(models.Model):
         return self.price * self.quantity
 
 class Igridients(models.Model):
+    UNIT_G = 'g'
+    UNIT_PCS = 'pcs'
+    UNIT_ML = 'ml'
+
+    UNIT_CHOICES = [
+        (UNIT_G, 'грамм'),
+        (UNIT_PCS, 'штук'),
+        (UNIT_ML, 'миллилитров'),
+    ]
+
     name = models.CharField(max_length=100, verbose_name='Название')
-    unit = models.CharField(max_length=100, verbose_name='Единица измерения')
+    unit = models.CharField(
+        max_length=10,
+        choices=UNIT_CHOICES,
+        default=UNIT_G,
+        verbose_name='Единица измерения',
+    )
     stock_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество на складе')
-    
-    class Meta: 
+
+    class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ['name']
-    
+
     def __str__(self):
         return self.name
 

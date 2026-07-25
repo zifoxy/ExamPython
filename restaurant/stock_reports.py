@@ -28,7 +28,7 @@ def build_revision_blank_rows(date_from, date_to):
 
         rows.append({
             'name': ing.name,
-            'unit': ing.unit,
+            'unit': ing.get_unit_display(),
             'stock_start': stock_start,
             'plus': plus,
             'minus': abs(minus),
