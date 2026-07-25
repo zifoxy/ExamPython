@@ -1,28 +1,78 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Доставка{% endblock %}</title>
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('firebite-theme');
+        if (theme !== 'light' && theme !== 'dark') theme = 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
+    /* --- Ночная тема (по умолчанию) --- */
+    :root,
+    [data-theme="dark"] {
       --fb-ink: #0a0e14;
-      --fb-night: #141925;
-      --fb-panel: rgba(16, 18, 26, 0.88);
-      --fb-panel-solid: #161a24;
-      --fb-cream: #f3efe6;
+      --fb-text: #f3efe6;
       --fb-muted: #b7aea0;
+      --fb-panel: rgba(16, 18, 26, 0.88);
+      --fb-nav: rgba(12, 14, 20, 0.92);
+      --fb-footer: rgba(10, 12, 18, 0.92);
       --fb-amber: #d48c3d;
       --fb-amber-hot: #e6a54f;
-      --fb-wine: #8b3a42;
-      --fb-wood: #6b4428;
+      --fb-wine: #c45a66;
       --fb-border: rgba(212, 140, 61, 0.28);
+      --fb-input-bg: rgba(10, 12, 18, 0.75);
+      --fb-table-head: #12161f;
+      --fb-overlay:
+        linear-gradient(
+          180deg,
+          rgba(8, 10, 16, 0.55) 0%,
+          rgba(8, 10, 16, 0.35) 35%,
+          rgba(8, 10, 16, 0.45) 70%,
+          rgba(8, 10, 16, 0.75) 100%
+        );
+      --fb-bg-image: url("/media/site-bg.png");
+      --fb-close-filter: invert(1) grayscale(100%) brightness(200%);
+      --fb-username: rgba(243, 239, 230, 0.55);
+    }
+
+    /* --- Дневная тема --- */
+    [data-theme="light"] {
+      --fb-ink: #e8f0f8;
+      --fb-text: #1c1814;
+      --fb-muted: #5c5348;
+      --fb-panel: rgba(255, 252, 247, 0.9);
+      --fb-nav: rgba(255, 252, 247, 0.92);
+      --fb-footer: rgba(255, 252, 247, 0.94);
+      --fb-amber: #b8722a;
+      --fb-amber-hot: #d48c3d;
+      --fb-wine: #8b3a42;
+      --fb-border: rgba(107, 68, 40, 0.22);
+      --fb-input-bg: rgba(255, 255, 255, 0.92);
+      --fb-table-head: #2a241c;
+      --fb-overlay:
+        linear-gradient(
+          180deg,
+          rgba(232, 240, 248, 0.55) 0%,
+          rgba(255, 252, 247, 0.35) 35%,
+          rgba(255, 252, 247, 0.45) 70%,
+          rgba(232, 240, 248, 0.7) 100%
+        );
+      --fb-bg-image: url("/media/site-bg-light.png");
+      --fb-close-filter: none;
+      --fb-username: rgba(28, 24, 20, 0.55);
     }
 
     html, body {
@@ -32,48 +82,37 @@
     body {
       position: relative;
       font-family: "Source Sans 3", system-ui, sans-serif;
-      color: var(--fb-cream);
+      color: var(--fb-text);
       background-color: var(--fb-ink);
+      transition: color 0.25s ease, background-color 0.25s ease;
     }
 
-    /* Фон отдельным слоем — кадр на стол со свечой, не на небо */
     .site-bg {
       position: fixed;
       inset: 0;
       z-index: -1;
       pointer-events: none;
       background-color: var(--fb-ink);
-      background-image: url("/media/site-bg.png");
+      background-image: var(--fb-bg-image);
       background-repeat: no-repeat;
-      /* cover + якорь ниже центра: видно еду, свечу и часть неба */
       background-size: cover;
       background-position: center 72%;
+      transition: background-image 0.3s ease;
     }
 
     .site-bg::after {
       content: "";
       position: absolute;
       inset: 0;
-      background:
-        linear-gradient(
-          180deg,
-          rgba(8, 10, 16, 0.55) 0%,
-          rgba(8, 10, 16, 0.35) 35%,
-          rgba(8, 10, 16, 0.45) 70%,
-          rgba(8, 10, 16, 0.75) 100%
-        );
+      background: var(--fb-overlay);
     }
 
     @media (max-width: 768px) {
-      .site-bg {
-        background-size: cover;
-        background-position: center 60%;
-      }
+      .site-bg { background-position: center 60%; }
     }
 
     @media (min-width: 1400px) {
       .site-bg {
-        /* на широких экранах чуть крупнее, чтобы стол не «убегал» */
         background-size: 110% auto;
         background-position: center 68%;
       }
@@ -84,23 +123,18 @@
       letter-spacing: 0.02em;
     }
 
-    a {
-      color: var(--fb-amber);
-    }
-
-    a:hover {
-      color: var(--fb-amber-hot);
-    }
+    a { color: var(--fb-amber); }
+    a:hover { color: var(--fb-amber-hot); }
 
     .site-nav {
-      background: rgba(12, 14, 20, 0.92) !important;
+      background: var(--fb-nav) !important;
       border-bottom: 1px solid var(--fb-border);
       backdrop-filter: blur(10px);
     }
 
     .navbar-brand,
     .nav-link {
-      color: var(--fb-cream) !important;
+      color: var(--fb-text) !important;
     }
 
     .nav-link:hover,
@@ -108,7 +142,51 @@
       color: var(--fb-amber) !important;
     }
 
-    .btn-amber {
+    .navbar-toggler {
+      border-color: var(--fb-border);
+    }
+
+    .navbar-toggler-icon {
+      filter: var(--fb-close-filter);
+    }
+
+    [data-theme="light"] .navbar-toggler-icon {
+      filter: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(28, 24, 20, 0.85)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+
+    .user-chip {
+      color: var(--fb-username);
+    }
+
+    .btn-theme {
+      width: 2.25rem;
+      height: 2.25rem;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--fb-border);
+      background: var(--fb-panel);
+      color: var(--fb-amber);
+      line-height: 1;
+    }
+
+    .btn-theme:hover {
+      background: var(--fb-amber);
+      color: #1a1208;
+      border-color: var(--fb-amber);
+    }
+
+    .btn-theme .icon-sun { display: none; }
+    .btn-theme .icon-moon { display: inline; }
+    [data-theme="light"] .btn-theme .icon-sun { display: inline; }
+    [data-theme="light"] .btn-theme .icon-moon { display: none; }
+
+    .btn-amber,
+    .btn-primary,
+    .btn-warning {
       --bs-btn-color: #1a1208;
       --bs-btn-bg: var(--fb-amber);
       --bs-btn-border-color: var(--fb-amber);
@@ -122,60 +200,32 @@
     }
 
     .btn-outline-cream {
-      --bs-btn-color: var(--fb-cream);
-      --bs-btn-border-color: rgba(243, 239, 230, 0.45);
-      --bs-btn-hover-color: var(--fb-ink);
-      --bs-btn-hover-bg: var(--fb-cream);
-      --bs-btn-hover-border-color: var(--fb-cream);
-    }
-
-    .btn-primary {
-      --bs-btn-bg: var(--fb-amber);
-      --bs-btn-border-color: var(--fb-amber);
-      --bs-btn-hover-bg: var(--fb-amber-hot);
-      --bs-btn-hover-border-color: var(--fb-amber-hot);
-      --bs-btn-active-bg: #c47b30;
-      --bs-btn-active-border-color: #c47b30;
-      --bs-btn-color: #1a1208;
+      --bs-btn-color: var(--fb-text);
+      --bs-btn-border-color: var(--fb-border);
       --bs-btn-hover-color: #1a1208;
-      --bs-btn-active-color: #1a1208;
-      font-weight: 600;
-    }
-
-    .btn-warning {
-      --bs-btn-bg: var(--fb-amber);
-      --bs-btn-border-color: var(--fb-amber);
-      --bs-btn-hover-bg: var(--fb-amber-hot);
-      --bs-btn-hover-border-color: var(--fb-amber-hot);
-      --bs-btn-color: #1a1208;
-      --bs-btn-hover-color: #1a1208;
-      font-weight: 600;
+      --bs-btn-hover-bg: var(--fb-amber);
+      --bs-btn-hover-border-color: var(--fb-amber);
     }
 
     .btn-outline-light {
-      --bs-btn-color: var(--fb-cream);
-      --bs-btn-border-color: rgba(243, 239, 230, 0.5);
-      --bs-btn-hover-bg: var(--fb-cream);
-      --bs-btn-hover-border-color: var(--fb-cream);
-      --bs-btn-hover-color: var(--fb-ink);
+      --bs-btn-color: var(--fb-text);
+      --bs-btn-border-color: var(--fb-border);
+      --bs-btn-hover-bg: var(--fb-amber);
+      --bs-btn-hover-border-color: var(--fb-amber);
+      --bs-btn-hover-color: #1a1208;
     }
 
     .btn-light {
-      --bs-btn-bg: var(--fb-cream);
-      --bs-btn-border-color: var(--fb-cream);
-      --bs-btn-color: var(--fb-ink);
-      --bs-btn-hover-bg: #fff8ec;
-      --bs-btn-hover-border-color: #fff8ec;
-      --bs-btn-hover-color: var(--fb-ink);
+      --bs-btn-bg: var(--fb-panel);
+      --bs-btn-border-color: var(--fb-border);
+      --bs-btn-color: var(--fb-text);
+      --bs-btn-hover-bg: var(--fb-amber);
+      --bs-btn-hover-border-color: var(--fb-amber);
+      --bs-btn-hover-color: #1a1208;
     }
 
-    .text-danger {
-      color: var(--fb-wine) !important;
-    }
-
-    .text-muted {
-      color: var(--fb-muted) !important;
-    }
+    .text-danger { color: var(--fb-wine) !important; }
+    .text-muted { color: var(--fb-muted) !important; }
 
     .card,
     .list-group-item,
@@ -186,24 +236,24 @@
     .form-select,
     .modal-content {
       background-color: var(--fb-panel);
-      color: var(--fb-cream);
+      color: var(--fb-text);
       border-color: var(--fb-border);
     }
 
     .card {
       backdrop-filter: blur(8px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
     }
 
     .card-title a,
     .text-dark {
-      color: var(--fb-cream) !important;
+      color: var(--fb-text) !important;
     }
 
     .list-group-item-secondary,
     .list-group-item-action {
-      background-color: rgba(22, 26, 36, 0.92);
-      color: var(--fb-cream);
+      background-color: var(--fb-panel);
+      color: var(--fb-text);
       border-color: var(--fb-border);
     }
 
@@ -215,22 +265,22 @@
 
     .table {
       --bs-table-bg: transparent;
-      --bs-table-color: var(--fb-cream);
+      --bs-table-color: var(--fb-text);
       --bs-table-border-color: var(--fb-border);
-      --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+      --bs-table-striped-bg: rgba(127, 127, 127, 0.06);
       --bs-table-hover-bg: rgba(212, 140, 61, 0.12);
-      --bs-table-hover-color: var(--fb-cream);
+      --bs-table-hover-color: var(--fb-text);
     }
 
     .table-dark {
-      --bs-table-bg: #12161f;
-      --bs-table-color: var(--fb-cream);
+      --bs-table-bg: var(--fb-table-head);
+      --bs-table-color: #f3efe6;
       --bs-table-border-color: var(--fb-border);
     }
 
     .table-secondary {
-      --bs-table-bg: rgba(30, 34, 46, 0.95);
-      --bs-table-color: var(--fb-cream);
+      --bs-table-bg: var(--fb-panel);
+      --bs-table-color: var(--fb-text);
     }
 
     .bg-white {
@@ -244,40 +294,45 @@
 
     .form-control,
     .form-select {
-      background-color: rgba(10, 12, 18, 0.75);
-      color: var(--fb-cream);
-      border-color: rgba(243, 239, 230, 0.2);
+      background-color: var(--fb-input-bg);
+      color: var(--fb-text);
+      border-color: var(--fb-border);
     }
 
     .form-control:focus,
     .form-select:focus {
-      background-color: rgba(10, 12, 18, 0.9);
-      color: var(--fb-cream);
+      background-color: var(--fb-input-bg);
+      color: var(--fb-text);
       border-color: var(--fb-amber);
       box-shadow: 0 0 0 0.2rem rgba(212, 140, 61, 0.25);
     }
 
     .form-control::placeholder {
-      color: rgba(183, 174, 160, 0.7);
-    }
-
-    .breadcrumb-item a {
-      color: var(--fb-amber);
-    }
-
-    .breadcrumb-item.active {
       color: var(--fb-muted);
+      opacity: 0.75;
     }
+
+    .breadcrumb-item a { color: var(--fb-amber); }
+    .breadcrumb-item.active { color: var(--fb-muted); }
 
     .site-footer {
-      background: rgba(10, 12, 18, 0.92) !important;
+      background: var(--fb-footer) !important;
       border-top: 1px solid var(--fb-border) !important;
       color: var(--fb-muted);
     }
 
     .badge.text-bg-dark {
       background-color: var(--fb-ink) !important;
-      color: var(--fb-cream);
+      color: var(--fb-text);
+    }
+
+    [data-theme="dark"] .badge.text-bg-dark {
+      background-color: #0a0e14 !important;
+      color: #f3efe6;
+    }
+
+    .btn-close {
+      filter: var(--fb-close-filter);
     }
 
     .alert-success {
@@ -286,10 +341,15 @@
       color: #e8f0dc;
     }
 
+    [data-theme="light"] .alert-success {
+      background-color: rgba(220, 240, 210, 0.95);
+      color: #2a4a20;
+    }
+
     .alert-secondary {
-      background-color: rgba(30, 34, 46, 0.9);
+      background-color: var(--fb-panel);
       border-color: var(--fb-border);
-      color: var(--fb-cream);
+      color: var(--fb-text);
     }
 
     .alert-warning {
@@ -298,10 +358,20 @@
       color: #ffe8c8;
     }
 
+    [data-theme="light"] .alert-warning {
+      background-color: rgba(255, 236, 200, 0.95);
+      color: #6a4010;
+    }
+
     .alert-danger {
       background-color: rgba(90, 30, 36, 0.9);
       border-color: rgba(139, 58, 66, 0.5);
       color: #ffd7db;
+    }
+
+    [data-theme="light"] .alert-danger {
+      background-color: rgba(255, 220, 224, 0.95);
+      color: #6a2030;
     }
 
     .alert-info {
@@ -309,13 +379,18 @@
       border-color: rgba(100, 140, 200, 0.35);
       color: #d8e8ff;
     }
+
+    [data-theme="light"] .alert-info {
+      background-color: rgba(210, 230, 255, 0.95);
+      color: #1a3a60;
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
   <div class="site-bg" aria-hidden="true"></div>
 
-  <nav class="navbar navbar-expand-lg navbar-dark site-nav mb-4">
+  <nav class="navbar navbar-expand-lg site-nav mb-4">
     <div class="container">
       <a class="navbar-brand fw-bold" href="{% url 'menu' %}">
         <i class="bi bi-fire"></i> FireBite
@@ -346,8 +421,12 @@
         </ul>
 
         <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-theme" id="themeToggle" title="Сменить тему" aria-label="Сменить тему">
+            <i class="bi bi-moon-stars-fill icon-moon"></i>
+            <i class="bi bi-sun-fill icon-sun"></i>
+          </button>
           {% if user.is_authenticated %}
-            <span class="text-white-50 small d-none d-md-inline">{{ user.username }}</span>
+            <span class="user-chip small d-none d-md-inline">{{ user.username }}</span>
             <form method="post" action="{% url 'logout' %}" class="m-0">
               {% csrf_token %}
               <button type="submit" class="btn btn-outline-cream btn-sm">Выйти</button>
@@ -373,7 +452,7 @@
       {% for message in messages %}
         <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show" role="alert">
           {{ message }}
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
       {% endfor %}
     {% endif %}
@@ -388,5 +467,27 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+
+      function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      }
+
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('firebite-theme', theme); } catch (e) {}
+        btn.setAttribute('title', theme === 'light' ? 'Включить ночную тему' : 'Включить дневную тему');
+        btn.setAttribute('aria-label', btn.getAttribute('title'));
+      }
+
+      setTheme(currentTheme());
+      btn.addEventListener('click', function () {
+        setTheme(currentTheme() === 'light' ? 'dark' : 'light');
+      });
+    })();
+  </script>
 </body>
 </html>
