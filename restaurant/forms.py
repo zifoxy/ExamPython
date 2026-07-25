@@ -87,24 +87,26 @@ class RevisionForm(forms.Form):
         }),
     )
 
+
 class MovementPeriodForm(forms.Form):
-    date_form = forms.DateField(label = 'C',
-    widget = forms.DateInput(attrs = {
-        'type': 'date',
-        'class': 'form-control',
-    }),
+    date_from = forms.DateField(
+        label='С',
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+        }),
     )
-    date_to = forms.DateDield(
-        label = 'По',
-        widget = forms.DateInput(attrs = {
+    date_to = forms.DateField(
+        label='По',
+        widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control',
         }),
     )
 
-    def clean(self): 
+    def clean(self):
         cleaned = super().clean()
-        if cleaned.get('date_form') and cleaned.get('date_to'):
-            if cleaned['date_form'] > cleaned['date_to']:
-                raise forms.ValidationError("Дата начала не может быть позже даты окончания")
+        if cleaned.get('date_from') and cleaned.get('date_to'):
+            if cleaned['date_from'] > cleaned['date_to']:
+                raise forms.ValidationError('Дата начала не может быть позже даты окончания')
         return cleaned

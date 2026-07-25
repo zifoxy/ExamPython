@@ -1,0 +1,72 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Бланк ревизии{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item active">Бланк ревизии</li>
+  </ol>
+</nav>
+
+<h1 class="mb-4">Бланк ревизии</h1>
+
+<form method="get" class="row g-3 align-items-end mb-4">
+  {% for field in form %}
+    <div class="col-auto">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+        <div class="text-danger small">{{ field.errors|striptags }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% if form.non_field_errors %}
+    <div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
+  {% endif %}
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Показать</button>
+    {% if form.is_valid %}
+      <a class="btn btn-outline-success"
+         href="{% url 'accountant_revision_blank_export' %}?date_from={{ form.cleaned_data.date_from|date:'Y-m-d' }}&date_to={{ form.cleaned_data.date_to|date:'Y-m-d' }}">
+        Скачать CSV
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+{% if rows %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>Ингредиент</th>
+          <th>Ед.</th>
+          <th>На начало</th>
+          <th class="text-success">+</th>
+          <th class="text-danger">−</th>
+          <th>Учёт на конец</th>
+          <th>Факт</th>
+          <th>Разница</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.unit }}</td>
+            <td>{{ row.stock_start }}</td>
+            <td class="text-success">{{ row.plus }}</td>
+            <td class="text-danger">{{ row.minus }}</td>
+            <td>{{ row.stock_end }}</td>
+            <td></td>
+            <td></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% elif form.is_bound and form.is_valid %}
+  <div class="alert alert-secondary">Нет ингредиентов для бланка.</div>
+{% endif %}
+{% endblock %}

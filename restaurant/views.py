@@ -1,5 +1,8 @@
+import csv
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth import login
@@ -11,8 +14,9 @@ from collections import defaultdict
 
 from .models import Category, Dish, Order, OrderItem, Profile, Igridients, StockMovement
 from .cart import Cart
-from .forms import OrderCreateForm, DishForm, RegisterForm, RevisionForm
+from .forms import OrderCreateForm, DishForm, RegisterForm, RevisionForm, MovementPeriodForm
 from .decorators import role_required
+from .stock_reports import build_revision_blank_rows
 
 
 def _safe_redirect_url(request, fallback='menu'):
@@ -275,3 +279,52 @@ def accountant_consumption(request):
     return render(request, 'restaurant/accountant/consumption.html', {
         'rows': rows,
     })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_revision_blank(request):
+    form = MovementPeriodForm(request.GET or None)
+    rows = []
+    if form.is_valid():
+        rows = build_revision_blank_rows(
+            form.cleaned_data['date_from'],
+            form.cleaned_data['date_to'],
+        )
+    return render(request, 'restaurant/accountant/revision_blank.html', {
+        'form': form,
+        'rows': rows,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_revision_blank_export(request):
+    form = MovementPeriodForm(request.GET or None)
+    if not form.is_valid():
+        messages.error(request, 'Укажите корректный период дат')
+        return redirect('accountant_revision_blank')
+
+    date_from = form.cleaned_data['date_from']
+    date_to = form.cleaned_data['date_to']
+    rows = build_revision_blank_rows(date_from, date_to)
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = (
+        f'attachment; filename="revision_{date_from}_{date_to}.csv"'
+    )
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow([
+        'Ингредиент', 'Ед.', 'На начало', 'Приход (+)', 'Расход (−)',
+        'Учёт на конец', 'Факт', 'Разница',
+    ])
+    for row in rows:
+        writer.writerow([
+            row['name'],
+            row['unit'],
+            row['stock_start'],
+            row['plus'],
+            row['minus'],
+            row['stock_end'],
+            '',
+            '',
+        ])
+    return response
