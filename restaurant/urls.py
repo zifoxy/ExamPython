@@ -31,4 +31,26 @@ urlpatterns = [
     path('moderator/dishes/add/', views.dish_create, name='dish_create'),
     path('moderator/dishes/<int:pk>/edit/', views.dish_edit, name='dish_edit'),
     path('moderator/dishes/<int:pk>/delete/', views.dish_delete, name='dish_delete'),
+
+    # Бухгалтер
+    path(
+        'accountant/ingredients/',
+        views.accountant_ingredients,
+        name='accountant_ingredients',
+    ),
+    path(
+        'accountant/ingredients/<int:pk>/revision/',
+        views.accountant_revision,
+        name='accountant_revision',
+    ),
+    path(
+        'accountant/dishes/<int:pk>/recipe/',
+        views.accountant_recipe,
+        name='accountant_recipe',
+    ),
+    path(
+        'accountant/report/consumption/',
+        views.accountant_consumption,
+        name='accountant_consumption',
+    ),
 ]

@@ -22,3 +22,9 @@ def role_required(*roles):
             return view_func(request, *args, **kwargs)
         return _wrapped
     return decorator
+
+def can_see_full_recipe(user): 
+    if user.is_superuser:
+        return True
+    profile = getattr(user, 'profile', None)
+    return bool(profile and profile.is_active and profile.is_accountant)

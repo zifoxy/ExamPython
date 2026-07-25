@@ -6,9 +6,12 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .models import Category, Dish, Order, OrderItem, Profile
+from decimal import Decimal
+from collections import defaultdict
+
+from .models import Category, Dish, Order, OrderItem, Profile, Igridients, StockMovement
 from .cart import Cart
-from .forms import OrderCreateForm, DishForm, RegisterForm
+from .forms import OrderCreateForm, DishForm, RegisterForm, RevisionForm
 from .decorators import role_required
 
 
@@ -194,4 +197,81 @@ def dish_delete(request, pk):
         return redirect('menu')
     return render(request, 'restaurant/moderator/dish_confirm_delete.html', {
         'dish': dish,
+    })
+
+
+#Бухгалтер
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_ingredients(request):
+    ingredients = Igridients.objects.all()
+    dishes = Dish.objects.select_related('category').prefetch_related('recipe_items').order_by('name')
+    return render(request, 'restaurant/accountant/ingredients.html', {
+        'ingredients': ingredients,
+        'dishes': dishes,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_revision(request, pk):
+    ingredient = get_object_or_404(Igridients, pk=pk)
+    if request.method == 'POST':
+        form = RevisionForm(request.POST)
+        if form.is_valid():
+            StockMovement.create_revision(
+                ingredient=ingredient,
+                actual_quantity=form.cleaned_data['actual_quantity'],
+                user=request.user,
+                note=form.cleaned_data.get('note', ''),
+            )
+            messages.success(
+                request,
+                f'Ревизия «{ingredient.name}»: остаток = {form.cleaned_data["actual_quantity"]} {ingredient.unit}',
+            )
+            return redirect('accountant_ingredients')
+    else:
+        form = RevisionForm(initial={'actual_quantity': ingredient.stock_quantity})
+
+    return render(request, 'restaurant/accountant/revision.html', {
+        'ingredient': ingredient,
+        'form': form,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_recipe(request, pk):
+    dish = get_object_or_404(
+        Dish.objects.prefetch_related('recipe_items__igridients'),
+        pk=pk,
+    )
+    return render(request, 'restaurant/accountant/recipe.html', {
+        'dish': dish,
+        'recipe_items': dish.recipe_items.select_related('igridients'),
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_consumption(request):
+    """Расход ингредиентов по выполненным заказам (рецептура × порции)."""
+    order_items = (
+        OrderItem.objects
+        .filter(order__status='done', dish__isnull=False)
+        .select_related('dish')
+        .prefetch_related('dish__recipe_items__igridients')
+    )
+    totals = defaultdict(lambda: {
+        'name': '',
+        'unit': '',
+        'quantity': Decimal('0'),
+    })
+    for oi in order_items:
+        for ri in oi.dish.recipe_items.all():
+            ing = ri.igridients
+            totals[ing.pk]['name'] = ing.name
+            totals[ing.pk]['unit'] = ing.unit
+            totals[ing.pk]['quantity'] += ri.quantity * oi.quantity
+
+    rows = sorted(totals.values(), key=lambda r: r['name'].lower())
+    return render(request, 'restaurant/accountant/consumption.html', {
+        'rows': rows,
     })

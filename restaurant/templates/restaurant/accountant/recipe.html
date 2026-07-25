@@ -1,0 +1,41 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Рецептура — {{ dish.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item active">{{ dish.name }}</li>
+  </ol>
+</nav>
+
+<h1 class="mb-2">Рецептура: {{ dish.name }}</h1>
+<p class="text-muted mb-4">Полные граммовки на 1 порцию. Доступно только бухгалтеру и админу.</p>
+
+{% if recipe_items %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>Ингредиент</th>
+          <th>Количество</th>
+          <th>Ед.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in recipe_items %}
+          <tr>
+            <td>{{ item.igridients.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.igridients.unit }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary">Рецептура не задана. Добавьте позиции в админке у блюда.</div>
+{% endif %}
+
+<a href="{% url 'accountant_ingredients' %}" class="btn btn-outline-secondary mt-3">← К складу</a>
+{% endblock %}

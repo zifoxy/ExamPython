@@ -1,0 +1,75 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Склад — бухгалтер{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <h1 class="mb-0">Склад и рецептуры</h1>
+  <a href="{% url 'accountant_consumption' %}" class="btn btn-outline-primary btn-sm">
+    Отчёт по расходу
+  </a>
+</div>
+
+<h2 class="h4 mb-3">Ингредиенты и остатки</h2>
+{% if ingredients %}
+  <div class="table-responsive mb-5">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>Название</th>
+          <th>Ед.</th>
+          <th>Остаток</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in ingredients %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.unit }}</td>
+            <td>{{ item.stock_quantity }}</td>
+            <td class="text-end">
+              <a href="{% url 'accountant_revision' item.pk %}" class="btn btn-sm btn-warning">
+                Ревизия
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary mb-5">Ингредиентов пока нет. Добавьте их в админке.</div>
+{% endif %}
+
+<h2 class="h4 mb-3">Рецептуры блюд</h2>
+{% if dishes %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>Блюдо</th>
+          <th>Категория</th>
+          <th>Позиций в рецепте</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dish in dishes %}
+          <tr>
+            <td>{{ dish.name }}</td>
+            <td>{{ dish.category.name }}</td>
+            <td>{{ dish.recipe_items.count }}</td>
+            <td class="text-end">
+              <a href="{% url 'accountant_recipe' dish.pk %}" class="btn btn-sm btn-primary">
+                Полная рецептура
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary">Блюд пока нет.</div>
+{% endif %}
+{% endblock %}

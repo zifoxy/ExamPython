@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Category, Dish, Order, OrderItem, Profile
-
+from .models import Category, Dish, Order, OrderItem, Profile, Igridients, RecipeItem, StockMovement
 
 class DishInline(admin.TabularInline):
     model = Dish
@@ -14,11 +13,30 @@ class CategoryAdmin(admin.ModelAdmin):
     inlines = [DishInline]
 
 
+class RecipeItemInline(admin.TabularInline):
+    model = RecipeItem
+    extra = 1
+
+
 @admin.register(Dish)
 class DishAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'price', 'is_available')
     list_filter = ('category', 'is_available')
     search_fields = ('name',)
+    inlines = [RecipeItemInline]
+
+
+@admin.register(Igridients)
+class IgridientsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'unit', 'stock_quantity')
+    search_fields = ('name',)
+
+
+@admin.register(StockMovement)
+class StockMovementAdmin(admin.ModelAdmin):
+    list_display = ('ingredient', 'quantity', 'reason', 'created_by', 'created_at')
+    list_filter = ('reason', 'created_at')
+    readonly_fields = ('ingredient', 'quantity', 'reason', 'note', 'created_by', 'created_at')
 
 
 class OrderItemInline(admin.TabularInline):

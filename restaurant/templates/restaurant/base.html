@@ -28,6 +28,11 @@
                 <a class="nav-link" href="{% url 'dish_create' %}">Добавить блюдо</a>
               </li>
             {% endif %}
+            {% if is_accountant %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'accountant_ingredients' %}">Склад</a>
+              </li>
+            {% endif %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'cabinet' %}">Кабинет</a>
             </li>
