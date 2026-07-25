@@ -3,12 +3,13 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-6">
+  <div class="col-lg-8">
     <div class="card shadow-sm">
       <div class="card-body p-4">
         <h1 class="h3 mb-4">{{ title }}</h1>
         <form method="post" enctype="multipart/form-data">
           {% csrf_token %}
+
           {% for field in form %}
             <div class="mb-3">
               {% if field.name == 'is_available' %}
@@ -25,6 +26,57 @@
               {% endif %}
             </div>
           {% endfor %}
+
+          <hr class="my-4">
+          <h2 class="h5 mb-3">Рецептура (ингредиенты и граммовки)</h2>
+          <p class="small text-muted mb-3">
+            Справочник ингредиентов создаётся в админке.
+            Здесь выбираете ингредиент и указываете количество на 1 порцию.
+          </p>
+
+          {{ formset.management_form }}
+          {% if formset.non_form_errors %}
+            <div class="alert alert-danger py-2">{{ formset.non_form_errors }}</div>
+          {% endif %}
+
+          <div class="table-responsive mb-3">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Ингредиент</th>
+                  <th style="width: 160px;">Кол-во</th>
+                  <th style="width: 90px;">Удалить</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in formset %}
+                  <tr>
+                    {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                    <td>
+                      {{ f.igridients }}
+                      {% if f.igridients.errors %}
+                        <div class="text-danger small">{{ f.igridients.errors|striptags }}</div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {{ f.quantity }}
+                      {% if f.quantity.errors %}
+                        <div class="text-danger small">{{ f.quantity.errors|striptags }}</div>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if f.DELETE %}
+                        <div class="form-check d-flex justify-content-center">
+                          {{ f.DELETE }}
+                        </div>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
           <button type="submit" class="btn btn-primary">Сохранить</button>
           <a href="{% url 'menu' %}" class="btn btn-outline-secondary">Отмена</a>
         </form>

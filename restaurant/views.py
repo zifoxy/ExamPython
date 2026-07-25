@@ -14,7 +14,14 @@ from collections import defaultdict
 
 from .models import Category, Dish, Order, OrderItem, Profile, Igridients, StockMovement
 from .cart import Cart
-from .forms import OrderCreateForm, DishForm, RegisterForm, RevisionForm, MovementPeriodForm
+from .forms import (
+    OrderCreateForm,
+    DishForm,
+    RegisterForm,
+    RevisionForm,
+    MovementPeriodForm,
+    RecipeItemFormSet,
+)
 from .decorators import role_required
 from .stock_reports import build_revision_blank_rows
 
@@ -184,15 +191,20 @@ def order_detail(request, order_id):
 def dish_create(request):
     if request.method == 'POST':
         form = DishForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Блюдо успешно создано')
+        formset = RecipeItemFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
+            dish = form.save()
+            formset.instance = dish
+            formset.save()
+            messages.success(request, 'Блюдо и рецептура сохранены')
             return redirect('menu')
     else:
         form = DishForm()
+        formset = RecipeItemFormSet()
 
     return render(request, 'restaurant/moderator/dish_form.html', {
         'form': form,
+        'formset': formset,
         'title': 'Добавить блюдо',
     })
 
@@ -202,15 +214,19 @@ def dish_edit(request, pk):
     dish = get_object_or_404(Dish, pk=pk)
     if request.method == 'POST':
         form = DishForm(request.POST, request.FILES, instance=dish)
-        if form.is_valid():
+        formset = RecipeItemFormSet(request.POST, instance=dish)
+        if form.is_valid() and formset.is_valid():
             form.save()
-            messages.success(request, 'Блюдо успешно обновлено')
+            formset.save()
+            messages.success(request, 'Блюдо и рецептура обновлены')
             return redirect('menu')
     else:
         form = DishForm(instance=dish)
+        formset = RecipeItemFormSet(instance=dish)
 
     return render(request, 'restaurant/moderator/dish_form.html', {
         'form': form,
+        'formset': formset,
         'title': f'Редактировать: {dish.name}',
     })
 

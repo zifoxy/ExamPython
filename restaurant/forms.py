@@ -1,10 +1,11 @@
 ﻿from decimal import Decimal
 
 from django import forms
+from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Order, Dish
+from .models import Order, Dish, RecipeItem
 
 
 class OrderCreateForm(forms.ModelForm):
@@ -44,6 +45,33 @@ class DishForm(forms.ModelForm):
             'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'is_available': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class RecipeItemForm(forms.ModelForm):
+    class Meta:
+        model = RecipeItem
+        fields = ('igridients', 'quantity')
+        labels = {
+            'igridients': 'Ингредиент',
+            'quantity': 'Количество (г / мл)',
+        }
+        widgets = {
+            'igridients': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control form-control-sm',
+                'step': '0.01',
+                'min': '0.01',
+            }),
+        }
+
+
+RecipeItemFormSet = inlineformset_factory(
+    Dish,
+    RecipeItem,
+    form=RecipeItemForm,
+    extra=1,
+    can_delete=True,
+)
 
 
 class RegisterForm(UserCreationForm):
