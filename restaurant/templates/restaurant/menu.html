@@ -9,7 +9,6 @@
   {# Левая панель категорий #}
   <aside class="col-lg-3 mb-4">
     <div class="list-group sticky-top" style="top: 1rem;">
-      <div class="list-group-item list-group-item-secondary fw-semibold">Категории</div>
       {% for category in categories %}
         <a href="#category-{{ category.slug }}"
            class="list-group-item list-group-item-action category-nav-link">
