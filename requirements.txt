@@ -1,3 +1,5 @@
 Django>=5.0
 Pillow
 flake8
+psycopg2-binary
+python-dotenv
