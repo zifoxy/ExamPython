@@ -120,3 +120,112 @@ class OrderItem(models.Model):
     @property
     def subtotal(self):
         return self.price * self.quantity
+
+class Igridients(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Название')
+    unit = models.CharField(max_length=100, verbose_name='Единица измерения')
+    stock_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество на складе')
+    
+    class Meta: 
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+class RecipeItem(models.Model):
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, verbose_name='Блюдо', related_name='recipe_items')
+    igridients = models.ForeignKey(Igridients, on_delete=models.CASCADE, verbose_name='Ингредиент', related_name='recipe_items')
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Количество на блюдо')
+
+    class Meta:
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
+        ordering = ['dish']
+        unique_together = ('dish', 'igridients')
+
+    def __str__(self):
+        return f'{self.dish.name} - {self.igridients.name} - {self.quantity}'
+
+
+class StockMovement(models.Model):
+    """Движение склада. quantity: + приход, − списание. Остаток меняется только при создании."""
+
+    REASON_PURCHASE = 'purchase'
+    REASON_REVISION = 'revision'
+    REASON_WRITE_OFF = 'write_off'
+    REASON_SALE = 'sale'
+
+    REASON_CHOICES = [
+        (REASON_PURCHASE, 'Приход'),
+        (REASON_REVISION, 'Ревизия'),
+        (REASON_WRITE_OFF, 'Списание'),
+        (REASON_SALE, 'Продажа'),
+    ]
+
+    ingredient = models.ForeignKey(
+        Igridients,
+        on_delete=models.CASCADE,
+        related_name='movements',
+        verbose_name='Ингредиент',
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Изменение (+/−)',
+        help_text='Положительное — приход, отрицательное — списание',
+    )
+    reason = models.CharField(
+        max_length=20,
+        choices=REASON_CHOICES,
+        verbose_name='Причина',
+    )
+    note = models.CharField(max_length=255, blank=True, verbose_name='Комментарий')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата')
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        verbose_name='Кто создал',
+    )
+
+    class Meta:
+        verbose_name = 'Движение склада'
+        verbose_name_plural = 'Движения склада'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        sign = '+' if self.quantity >= 0 else ''
+        return f'{self.ingredient.name}: {sign}{self.quantity} ({self.get_reason_display()})'
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if not is_new:
+            raise ValueError('Движения склада нельзя редактировать — создайте новое')
+        super().save(*args, **kwargs)
+        # атомарно: stock = stock + delta
+        Igridients.objects.filter(pk=self.ingredient_id).update(
+            stock_quantity=models.F('stock_quantity') + self.quantity,
+        )
+
+    @classmethod
+    def create_revision(cls, ingredient, actual_quantity, user=None, note=''):
+        """
+        Бухгалтер вводит факт на полке.
+        В историю пишется разница: факт − учёт.
+        После save() остаток станет равным actual_quantity.
+        """
+        from decimal import Decimal
+
+        actual = Decimal(actual_quantity)
+        delta = actual - ingredient.stock_quantity
+        return cls.objects.create(
+            ingredient=ingredient,
+            quantity=delta,
+            reason=cls.REASON_REVISION,
+            created_by=user,
+            note=note or f'Ревизия: учёт {ingredient.stock_quantity} → факт {actual}',
+        )
