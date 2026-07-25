@@ -21,6 +21,10 @@ class Profile(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_USER, verbose_name='Роль')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
 
+    class Meta:
+        verbose_name = 'Профиль'
+        verbose_name_plural = 'Профили'
+
     def __str__(self):
         return f'{self.user.username} ({self.get_role_display()})'
 
