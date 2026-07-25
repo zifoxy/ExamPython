@@ -15,16 +15,8 @@ urlpatterns = [
 
     # Auth
     path('register/', views.register, name='register'),
-    path(
-        'login/',
-        auth_views.LoginView.as_view(template_name='restaurant/login.html'),
-        name='login',
-    ),
-    path(
-        'logout/',
-        auth_views.LogoutView.as_view(),
-        name='logout',
-    ),
+    path('login/', auth_views.LoginView.as_view(template_name='restaurant/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('cabinet/', views.cabinet, name='cabinet'),
 
     # Модератор
@@ -33,24 +25,10 @@ urlpatterns = [
     path('moderator/dishes/<int:pk>/delete/', views.dish_delete, name='dish_delete'),
 
     # Бухгалтер
-    path(
-        'accountant/ingredients/',
-        views.accountant_ingredients,
-        name='accountant_ingredients',
-    ),
-    path(
-        'accountant/ingredients/<int:pk>/revision/',
-        views.accountant_revision,
-        name='accountant_revision',
-    ),
-    path(
-        'accountant/dishes/<int:pk>/recipe/',
-        views.accountant_recipe,
-        name='accountant_recipe',
-    ),
-    path(
-        'accountant/report/consumption/',
-        views.accountant_consumption,
-        name='accountant_consumption',
-    ),
+    path('accountant/ingredients/', views.accountant_ingredients, name='accountant_ingredients'),
+    path('accountant/ingredients/<int:pk>/revision/', views.accountant_revision, name='accountant_revision'),
+    path('accountant/dishes/<int:pk>/recipe/', views.accountant_recipe, name='accountant_recipe'),
+    path('accountant/report/consumption/', views.accountant_consumption, name='accountant_consumption'),
+    path('accountant/report/revision-blank/', views.accountant_revision_blank, name='accountant_revision_blank'),
+    path('accountant/report/revision-blank/export/', views.accountant_revision_blank_export, name='accountant_revision_blank_export'),
 ]
