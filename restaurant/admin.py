@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Category, Dish, Order, OrderItem, Profile, Igridients, RecipeItem, StockMovement
+from .forms import RecipeItemForm
 
 class DishInline(admin.TabularInline):
     model = Dish
@@ -15,7 +16,8 @@ class CategoryAdmin(admin.ModelAdmin):
 
 class RecipeItemInline(admin.TabularInline):
     model = RecipeItem
-    extra = 1
+    form = RecipeItemForm
+    extra = 3
 
 
 @admin.register(Dish)

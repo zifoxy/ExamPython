@@ -5,7 +5,7 @@ from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Order, Dish, RecipeItem
+from .models import Order, Dish, RecipeItem, Igridients
 
 
 class OrderCreateForm(forms.ModelForm):
@@ -33,6 +33,28 @@ class OrderCreateForm(forms.ModelForm):
         }
 
 
+class IngredientChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f'{obj.name} ({obj.get_unit_display()})'
+
+
+class IngredientSelect(forms.Select):
+    """Select с data-unit у каждой опции — для подписи рядом с количеством."""
+
+    def __init__(self, *args, unit_map=None, **kwargs):
+        self.unit_map = unit_map or {}
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value:
+            pk = str(getattr(value, 'value', value))
+            unit = self.unit_map.get(pk)
+            if unit:
+                option['attrs']['data-unit'] = unit
+        return option
+
+
 class DishForm(forms.ModelForm):
     class Meta:
         model = Dish
@@ -48,15 +70,21 @@ class DishForm(forms.ModelForm):
 
 
 class RecipeItemForm(forms.ModelForm):
+    igridients = IngredientChoiceField(
+        queryset=Igridients.objects.all(),
+        label='Ингредиент',
+        widget=IngredientSelect(attrs={
+            'class': 'form-select form-select-sm ingredient-select',
+        }),
+    )
+
     class Meta:
         model = RecipeItem
         fields = ('igridients', 'quantity')
         labels = {
-            'igridients': 'Ингредиент',
             'quantity': 'Количество',
         }
         widgets = {
-            'igridients': forms.Select(attrs={'class': 'form-select form-select-sm'}),
             'quantity': forms.NumberInput(attrs={
                 'class': 'form-control form-control-sm',
                 'step': '0.01',
@@ -64,12 +92,21 @@ class RecipeItemForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        unit_map = {
+            str(ing.pk): ing.get_unit_display()
+            for ing in Igridients.objects.all()
+        }
+        self.fields['igridients'].widget.unit_map = unit_map
+        self.fields['igridients'].queryset = Igridients.objects.all()
+
 
 RecipeItemFormSet = inlineformset_factory(
     Dish,
     RecipeItem,
     form=RecipeItemForm,
-    extra=1,
+    extra=3,
     can_delete=True,
 )
 
