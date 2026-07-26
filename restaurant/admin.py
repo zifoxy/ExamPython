@@ -33,7 +33,14 @@ class IgridientsAdmin(admin.ModelAdmin):
     list_display = ('name', 'unit', 'stock_quantity')
     list_filter = ('unit',)
     search_fields = ('name',)
-    list_editable = ('unit', 'stock_quantity')
+    list_editable = ('unit',)
+
+    def get_readonly_fields(self, request, obj=None):
+        # Остаток меняется только через StockMovement (приход / ревизия).
+        # При создании ингредиента начальный остаток можно задать.
+        if obj is not None:
+            return ('stock_quantity',)
+        return ()
 
 
 @admin.register(StockMovement)
@@ -41,6 +48,16 @@ class StockMovementAdmin(admin.ModelAdmin):
     list_display = ('ingredient', 'quantity', 'reason', 'created_by', 'created_at')
     list_filter = ('reason', 'created_at')
     readonly_fields = ('ingredient', 'quantity', 'reason', 'note', 'created_by', 'created_at')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Журнал движений только на чтение; удаление ломает учёт.
+        return False
 
 
 class OrderItemInline(admin.TabularInline):

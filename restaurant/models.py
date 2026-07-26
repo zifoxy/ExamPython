@@ -221,14 +221,26 @@ class StockMovement(models.Model):
         return f'{self.ingredient.name}: {sign}{self.quantity} ({self.get_reason_display()})'
 
     def save(self, *args, **kwargs):
+        from django.db import transaction
+
         is_new = self.pk is None
         if not is_new:
             raise ValueError('Движения склада нельзя редактировать — создайте новое')
-        super().save(*args, **kwargs)
-        # атомарно: stock = stock + delta
-        Igridients.objects.filter(pk=self.ingredient_id).update(
-            stock_quantity=models.F('stock_quantity') + self.quantity,
-        )
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            Igridients.objects.filter(pk=self.ingredient_id).update(
+                stock_quantity=models.F('stock_quantity') + self.quantity,
+            )
+
+    def delete(self, *args, **kwargs):
+        """При удалении откатываем влияние на остаток склада."""
+        from django.db import transaction
+
+        with transaction.atomic():
+            Igridients.objects.filter(pk=self.ingredient_id).update(
+                stock_quantity=models.F('stock_quantity') - self.quantity,
+            )
+            super().delete(*args, **kwargs)
 
     @classmethod
     def create_purchase(cls, ingredient, quantity, user=None, note=''):
@@ -254,13 +266,17 @@ class StockMovement(models.Model):
         После save() остаток станет равным actual_quantity.
         """
         from decimal import Decimal
+        from django.db import transaction
 
         actual = Decimal(actual_quantity)
-        delta = actual - ingredient.stock_quantity
-        return cls.objects.create(
-            ingredient=ingredient,
-            quantity=delta,
-            reason=cls.REASON_REVISION,
-            created_by=user,
-            note=note or f'Ревизия: учёт {ingredient.stock_quantity} → факт {actual}',
-        )
+        with transaction.atomic():
+            locked = Igridients.objects.select_for_update().get(pk=ingredient.pk)
+            current = locked.stock_quantity
+            delta = actual - current
+            return cls.objects.create(
+                ingredient=locked,
+                quantity=delta,
+                reason=cls.REASON_REVISION,
+                created_by=user,
+                note=note or f'Ревизия: учёт {current} → факт {actual}',
+            )

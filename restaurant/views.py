@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from decimal import Decimal
@@ -290,17 +291,20 @@ def accountant_purchase(request):
         formset = PurchaseLineFormSet(request.POST)
         if formset.is_valid():
             added = []
-            for form in formset:
-                ingredient = form.cleaned_data.get('ingredient')
-                quantity = form.cleaned_data.get('quantity')
-                if not ingredient or not quantity:
-                    continue
-                StockMovement.create_purchase(
-                    ingredient=ingredient,
-                    quantity=quantity,
-                    user=request.user,
-                )
-                added.append(f'{ingredient.name} +{quantity} {ingredient.get_unit_display()}')
+            with transaction.atomic():
+                for form in formset:
+                    ingredient = form.cleaned_data.get('ingredient')
+                    quantity = form.cleaned_data.get('quantity')
+                    if not ingredient or not quantity:
+                        continue
+                    StockMovement.create_purchase(
+                        ingredient=ingredient,
+                        quantity=quantity,
+                        user=request.user,
+                    )
+                    added.append(
+                        f'{ingredient.name} +{quantity} {ingredient.get_unit_display()}'
+                    )
             messages.success(
                 request,
                 'Приход подтверждён. На склад добавлено: ' + '; '.join(added),
