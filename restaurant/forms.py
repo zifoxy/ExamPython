@@ -175,3 +175,65 @@ class MovementPeriodForm(forms.Form):
             if cleaned['date_from'] > cleaned['date_to']:
                 raise forms.ValidationError('Дата начала не может быть позже даты окончания')
         return cleaned
+
+
+class PurchaseLineForm(forms.Form):
+    ingredient = IngredientChoiceField(
+        queryset=Igridients.objects.all(),
+        label='Ингредиент',
+        required=False,
+        widget=IngredientSelect(attrs={'class': 'form-select'}),
+    )
+    quantity = forms.DecimalField(
+        label='Количество',
+        required=False,
+        min_value=Decimal('0.01'),
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01',
+            'min': '0.01',
+            'placeholder': '0',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        unit_map = {
+            str(ing.pk): ing.get_unit_display()
+            for ing in Igridients.objects.all()
+        }
+        self.fields['ingredient'].widget.unit_map = unit_map
+        self.fields['ingredient'].queryset = Igridients.objects.all()
+
+    def clean(self):
+        cleaned = super().clean()
+        ingredient = cleaned.get('ingredient')
+        quantity = cleaned.get('quantity')
+        if ingredient and not quantity:
+            self.add_error('quantity', 'Укажите количество')
+        if quantity and not ingredient:
+            self.add_error('ingredient', 'Выберите ингредиент')
+        return cleaned
+
+
+class PurchaseFormSet(forms.BaseFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        filled = [
+            form
+            for form in self.forms
+            if form.cleaned_data.get('ingredient') and form.cleaned_data.get('quantity')
+        ]
+        if not filled:
+            raise forms.ValidationError('Добавьте хотя бы одну позицию прихода')
+
+
+PurchaseLineFormSet = forms.formset_factory(
+    PurchaseLineForm,
+    formset=PurchaseFormSet,
+    extra=5,
+)

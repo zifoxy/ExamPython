@@ -28,6 +28,7 @@ urlpatterns = [
     # Бухгалтер
     path('accountant/ingredients/', views.accountant_ingredients, name='accountant_ingredients'),
     path('accountant/ingredients/<int:pk>/revision/', views.accountant_revision, name='accountant_revision'),
+    path('accountant/purchase/', views.accountant_purchase, name='accountant_purchase'),
     path('accountant/dishes/<int:pk>/recipe/', views.accountant_recipe, name='accountant_recipe'),
     path('accountant/report/consumption/', views.accountant_consumption, name='accountant_consumption'),
     path('accountant/report/revision-blank/', views.accountant_revision_blank, name='accountant_revision_blank'),

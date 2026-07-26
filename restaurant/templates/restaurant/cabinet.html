@@ -15,6 +15,7 @@
     {% if is_accountant %}
       <hr>
       <a href="{% url 'accountant_ingredients' %}" class="btn btn-sm btn-primary">Склад и ревизия</a>
+      <a href="{% url 'accountant_purchase' %}" class="btn btn-sm btn-success">Приход товаров</a>
       <a href="{% url 'accountant_consumption' %}" class="btn btn-sm btn-outline-primary">Отчёт по расходу</a>
       <a href="{% url 'accountant_revision_blank' %}" class="btn btn-sm btn-outline-warning">Бланк ревизии</a>
     {% endif %}

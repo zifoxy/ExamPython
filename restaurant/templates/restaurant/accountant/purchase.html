@@ -1,0 +1,89 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Приход товаров{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item active">Приход товаров</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h3 mb-2">Приход товаров</h1>
+        <p class="text-muted mb-4">
+          Укажите ингредиенты и количество. После нажатия «Подтвердить»
+          эти значения будут прибавлены к остаткам на складе.
+        </p>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {{ formset.management_form }}
+
+          {% if formset.non_form_errors %}
+            <div class="alert alert-danger">
+              {{ formset.non_form_errors }}
+            </div>
+          {% endif %}
+
+          <div class="table-responsive mb-3">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th style="width: 55%">Ингредиент</th>
+                  <th style="width: 25%">Количество</th>
+                  <th style="width: 20%">Ед.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for form in formset %}
+                  <tr class="purchase-row">
+                    <td>
+                      {{ form.ingredient }}
+                      {% if form.ingredient.errors %}
+                        <div class="text-danger small">{{ form.ingredient.errors|striptags }}</div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {{ form.quantity }}
+                      {% if form.quantity.errors %}
+                        <div class="text-danger small">{{ form.quantity.errors|striptags }}</div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="unit-label text-muted">—</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <button type="submit" class="btn btn-success">Подтвердить</button>
+          <a href="{% url 'accountant_ingredients' %}" class="btn btn-outline-secondary">Отмена</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateUnitLabel(select) {
+    const row = select.closest('tr');
+    if (!row) return;
+    const label = row.querySelector('.unit-label');
+    const opt = select.options[select.selectedIndex];
+    label.textContent = (opt && opt.dataset.unit) ? opt.dataset.unit : '—';
+  }
+
+  document.querySelectorAll('.purchase-row select').forEach(function (select) {
+    updateUnitLabel(select);
+    select.addEventListener('change', function () {
+      updateUnitLabel(select);
+    });
+  });
+</script>
+{% endblock %}

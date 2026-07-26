@@ -21,6 +21,7 @@ from .forms import (
     RevisionForm,
     MovementPeriodForm,
     RecipeItemFormSet,
+    PurchaseLineFormSet,
 )
 from .decorators import role_required
 from .stock_reports import build_revision_blank_rows
@@ -279,6 +280,37 @@ def accountant_revision(request, pk):
     return render(request, 'restaurant/accountant/revision.html', {
         'ingredient': ingredient,
         'form': form,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_purchase(request):
+    """Приход товаров: после подтверждения количества плюсуются к складу."""
+    if request.method == 'POST':
+        formset = PurchaseLineFormSet(request.POST)
+        if formset.is_valid():
+            added = []
+            for form in formset:
+                ingredient = form.cleaned_data.get('ingredient')
+                quantity = form.cleaned_data.get('quantity')
+                if not ingredient or not quantity:
+                    continue
+                StockMovement.create_purchase(
+                    ingredient=ingredient,
+                    quantity=quantity,
+                    user=request.user,
+                )
+                added.append(f'{ingredient.name} +{quantity} {ingredient.get_unit_display()}')
+            messages.success(
+                request,
+                'Приход подтверждён. На склад добавлено: ' + '; '.join(added),
+            )
+            return redirect('accountant_ingredients')
+    else:
+        formset = PurchaseLineFormSet()
+
+    return render(request, 'restaurant/accountant/purchase.html', {
+        'formset': formset,
     })
 
 

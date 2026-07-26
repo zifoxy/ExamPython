@@ -231,6 +231,22 @@ class StockMovement(models.Model):
         )
 
     @classmethod
+    def create_purchase(cls, ingredient, quantity, user=None, note=''):
+        """Приход товара: quantity > 0 плюсуется к складу."""
+        from decimal import Decimal
+
+        qty = Decimal(quantity)
+        if qty <= 0:
+            raise ValueError('Количество прихода должно быть больше нуля')
+        return cls.objects.create(
+            ingredient=ingredient,
+            quantity=qty,
+            reason=cls.REASON_PURCHASE,
+            created_by=user,
+            note=note or 'Приход товаров',
+        )
+
+    @classmethod
     def create_revision(cls, ingredient, actual_quantity, user=None, note=''):
         """
         Бухгалтер вводит факт на полке.
