@@ -56,6 +56,10 @@ def menu(request):
     })
 
 
+def terms_of_use(request):
+    return render(request, 'restaurant/terms_of_use.html')
+
+
 def dish_detail(request, pk):
     dish = get_object_or_404(Dish, pk=pk, is_available=True)
     return render(request, 'restaurant/dish_detail.html', {'dish': dish})

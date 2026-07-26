@@ -142,6 +142,20 @@
       color: var(--fb-amber) !important;
     }
 
+    .phone-link {
+      color: var(--fb-amber) !important;
+      font-weight: 600;
+      white-space: nowrap;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+
+    .phone-link:hover,
+    .phone-link:focus {
+      color: var(--fb-text) !important;
+      opacity: 0.9;
+    }
+
     .navbar-toggler {
       border-color: var(--fb-border);
     }
@@ -421,6 +435,12 @@
         </ul>
 
         <div class="d-flex align-items-center gap-2">
+          <a class="nav-link phone-link d-inline-flex align-items-center gap-1 px-2"
+             href="tel:+79999999999"
+             title="Позвонить">
+            <i class="bi bi-telephone-fill"></i>
+            <span>+7(999)999-99-99</span>
+          </a>
           <button type="button" class="btn btn-theme" id="themeToggle" title="Сменить тему" aria-label="Сменить тему">
             <i class="bi bi-moon-stars-fill icon-moon"></i>
             <i class="bi bi-sun-fill icon-sun"></i>
@@ -462,7 +482,10 @@
 
   <footer class="site-footer border-top py-4 mt-auto">
     <div class="container text-center small">
-      © FireBite — доставка еды
+      <div class="mb-2">© FireBite — доставка еды</div>
+      <a href="{% url 'terms_of_use' %}" class="link-secondary text-decoration-none">
+        Пользовательское соглашение
+      </a>
     </div>
   </footer>
 

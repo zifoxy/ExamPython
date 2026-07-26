@@ -23,7 +23,11 @@
           {% endfor %}
           <button type="submit" class="btn btn-primary w-100">Создать аккаунт</button>
         </form>
-        <p class="mt-3 mb-0 text-center text-muted">
+        <p class="mt-3 mb-0 text-center text-muted small">
+          Регистрируясь, вы принимаете
+          <a href="{% url 'terms_of_use' %}">Пользовательское соглашение</a>.
+        </p>
+        <p class="mt-2 mb-0 text-center text-muted">
           Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
         </p>
       </div>
