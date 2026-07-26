@@ -5,7 +5,7 @@ from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Order, Dish, RecipeItem, Igridients
+from .models import Order, Dish, RecipeItem, Igridients, StockMovement
 
 
 class OrderCreateForm(forms.ModelForm):
@@ -237,3 +237,64 @@ PurchaseLineFormSet = forms.formset_factory(
     formset=PurchaseFormSet,
     extra=5,
 )
+
+
+class StockMovementEditForm(forms.ModelForm):
+    ingredient = IngredientChoiceField(
+        queryset=Igridients.objects.all(),
+        label='Ингредиент',
+        widget=IngredientSelect(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = StockMovement
+        fields = ('ingredient', 'quantity', 'reason', 'note')
+        labels = {
+            'quantity': 'Изменение (+/−)',
+            'reason': 'Причина',
+            'note': 'Комментарий',
+        }
+        help_texts = {
+            'quantity': 'Положительное — приход, отрицательное — списание со склада',
+        }
+        widgets = {
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+            }),
+            'reason': forms.Select(attrs={'class': 'form-select'}),
+            'note': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Необязательно',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        unit_map = {
+            str(ing.pk): ing.get_unit_display()
+            for ing in Igridients.objects.all()
+        }
+        self.fields['ingredient'].widget.unit_map = unit_map
+        self.fields['ingredient'].queryset = Igridients.objects.all()
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data['quantity']
+        if quantity == 0:
+            raise forms.ValidationError('Изменение не может быть нулевым')
+        return quantity
+
+    def clean(self):
+        cleaned = super().clean()
+        reason = cleaned.get('reason')
+        quantity = cleaned.get('quantity')
+        if reason and quantity is not None:
+            if reason == StockMovement.REASON_PURCHASE and quantity < 0:
+                self.add_error('quantity', 'Для прихода укажите положительное количество')
+            if reason in (StockMovement.REASON_WRITE_OFF, StockMovement.REASON_SALE) and quantity > 0:
+                self.add_error(
+                    'quantity',
+                    'Для списания/продажи укажите отрицательное количество',
+                )
+        return cleaned
+

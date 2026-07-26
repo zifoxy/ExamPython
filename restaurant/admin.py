@@ -47,17 +47,18 @@ class IgridientsAdmin(admin.ModelAdmin):
 class StockMovementAdmin(admin.ModelAdmin):
     list_display = ('ingredient', 'quantity', 'reason', 'created_by', 'created_at')
     list_filter = ('reason', 'created_at')
-    readonly_fields = ('ingredient', 'quantity', 'reason', 'note', 'created_by', 'created_at')
+    search_fields = ('ingredient__name', 'note')
+    readonly_fields = ('created_by', 'created_at')
+    autocomplete_fields = ('ingredient',)
 
     def has_add_permission(self, request):
+        # Приход / ревизия — через кабинет бухгалтера.
         return False
 
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        # Журнал движений только на чтение; удаление ломает учёт.
-        return False
+    def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 class OrderItemInline(admin.TabularInline):

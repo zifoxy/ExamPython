@@ -169,7 +169,7 @@ class RecipeItem(models.Model):
 
 
 class StockMovement(models.Model):
-    """Движение склада. quantity: + приход, − списание. Остаток меняется только при создании."""
+    """Движение склада. quantity: + приход, − списание. Остаток синхронизируется при create/update/delete."""
 
     REASON_PURCHASE = 'purchase'
     REASON_REVISION = 'revision'
@@ -221,12 +221,28 @@ class StockMovement(models.Model):
         return f'{self.ingredient.name}: {sign}{self.quantity} ({self.get_reason_display()})'
 
     def save(self, *args, **kwargs):
+        """
+        Создание: остаток += quantity.
+        Редактирование: сначала откат старого влияния, затем применение нового.
+        """
         from django.db import transaction
 
-        is_new = self.pk is None
-        if not is_new:
-            raise ValueError('Движения склада нельзя редактировать — создайте новое')
         with transaction.atomic():
+            if self.pk is None:
+                super().save(*args, **kwargs)
+                Igridients.objects.filter(pk=self.ingredient_id).update(
+                    stock_quantity=models.F('stock_quantity') + self.quantity,
+                )
+                return
+
+            old = (
+                StockMovement.objects
+                .select_for_update()
+                .get(pk=self.pk)
+            )
+            Igridients.objects.filter(pk=old.ingredient_id).update(
+                stock_quantity=models.F('stock_quantity') - old.quantity,
+            )
             super().save(*args, **kwargs)
             Igridients.objects.filter(pk=self.ingredient_id).update(
                 stock_quantity=models.F('stock_quantity') + self.quantity,

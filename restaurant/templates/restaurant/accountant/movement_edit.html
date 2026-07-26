@@ -1,0 +1,49 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Редактирование движения #{{ movement.pk }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'accountant_movements' %}">Движения</a></li>
+    <li class="breadcrumb-item active">#{{ movement.pk }}</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h3 mb-2">Редактирование движения #{{ movement.pk }}</h1>
+        <p class="text-muted mb-4">
+          Дата создания: {{ movement.created_at|date:"d.m.Y H:i" }}.
+          При сохранении старое влияние на склад отменяется, новое применяется.
+        </p>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          {% for field in form %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% if field.errors %}
+                <div class="text-danger small">{{ field.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+          <a href="{% url 'accountant_movements' %}" class="btn btn-outline-secondary">Отмена</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Движения склада{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item active">Движения</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <h1 class="mb-0">Движения склада</h1>
+  <a href="{% url 'accountant_purchase' %}" class="btn btn-success btn-sm">Приход товаров</a>
+</div>
+
+<p class="text-muted mb-4">
+  Здесь можно исправить ошибку в приходе, списании или ревизии.
+  После сохранения остаток ингредиента пересчитается автоматически.
+</p>
+
+{% if movements %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Дата</th>
+          <th>Ингредиент</th>
+          <th>Изменение</th>
+          <th>Причина</th>
+          <th>Кто</th>
+          <th>Комментарий</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in movements %}
+          <tr>
+            <td>{{ m.pk }}</td>
+            <td>{{ m.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ m.ingredient.name }}</td>
+            <td class="{% if m.quantity >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {% if m.quantity >= 0 %}+{% endif %}{{ m.quantity }}
+              {{ m.ingredient.get_unit_display }}
+            </td>
+            <td>{{ m.get_reason_display }}</td>
+            <td>{% if m.created_by %}{{ m.created_by.username }}{% else %}—{% endif %}</td>
+            <td class="small text-muted">{{ m.note|default:"—" }}</td>
+            <td class="text-end">
+              <a href="{% url 'accountant_movement_edit' m.pk %}" class="btn btn-sm btn-outline-primary">
+                Изменить
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary">Движений пока нет.</div>
+{% endif %}
+
+<a href="{% url 'accountant_ingredients' %}" class="btn btn-outline-secondary mt-3">← К складу</a>
+{% endblock %}

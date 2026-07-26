@@ -23,6 +23,7 @@ from .forms import (
     MovementPeriodForm,
     RecipeItemFormSet,
     PurchaseLineFormSet,
+    StockMovementEditForm,
 )
 from .decorators import role_required
 from .stock_reports import build_revision_blank_rows
@@ -315,6 +316,45 @@ def accountant_purchase(request):
 
     return render(request, 'restaurant/accountant/purchase.html', {
         'formset': formset,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_movements(request):
+    """Журнал движений склада — просмотр и переход к редактированию."""
+    movements = (
+        StockMovement.objects
+        .select_related('ingredient', 'created_by')
+        .order_by('-created_at')
+    )
+    return render(request, 'restaurant/accountant/movements.html', {
+        'movements': movements,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_movement_edit(request, pk):
+    """Редактирование движения: остаток склада пересчитывается автоматически."""
+    movement = get_object_or_404(
+        StockMovement.objects.select_related('ingredient'),
+        pk=pk,
+    )
+    if request.method == 'POST':
+        form = StockMovementEditForm(request.POST, instance=movement)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+            messages.success(
+                request,
+                f'Движение #{movement.pk} обновлено. Остаток на складе пересчитан.',
+            )
+            return redirect('accountant_movements')
+    else:
+        form = StockMovementEditForm(instance=movement)
+
+    return render(request, 'restaurant/accountant/movement_edit.html', {
+        'form': form,
+        'movement': movement,
     })
 
 
