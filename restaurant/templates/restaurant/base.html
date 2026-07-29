@@ -428,6 +428,20 @@
                 <a class="nav-link" href="{% url 'accountant_ingredients' %}">Склад</a>
               </li>
             {% endif %}
+            {% if is_support %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'support_inbox' %}">
+                  Чаты
+                  {% if support_unread %}
+                    <span class="badge text-bg-warning">{{ support_unread }}</span>
+                  {% endif %}
+                </a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'support_chat' %}">Поддержка</a>
+              </li>
+            {% endif %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'cabinet' %}">Кабинет</a>
             </li>

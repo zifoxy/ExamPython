@@ -21,6 +21,12 @@ urlpatterns = [
     path('cabinet/', views.cabinet, name='cabinet'),
     path('cabinet/orders/<int:order_id>/', views.order_detail, name='order_detail'),
 
+    # Поддержка
+    path('support/chat/', views.support_chat, name='support_chat'),
+    path('support/chat/<int:pk>/poll/', views.support_chat_poll, name='support_chat_poll'),
+    path('support/inbox/', views.support_inbox, name='support_inbox'),
+    path('support/inbox/<int:pk>/', views.support_conversation, name='support_conversation'),
+
     # Модератор
     path('moderator/dishes/add/', views.dish_create, name='dish_create'),
     path('moderator/dishes/<int:pk>/edit/', views.dish_edit, name='dish_edit'),

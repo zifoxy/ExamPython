@@ -296,3 +296,85 @@ class StockMovement(models.Model):
                 created_by=user,
                 note=note or f'Ревизия: учёт {current} → факт {actual}',
             )
+
+
+class SupportConversation(models.Model):
+    STATUS_OPEN = 'open'
+    STATUS_WAITING = 'waiting'
+    STATUS_CLOSED = 'closed'
+
+    STATUS_CHOICES = [
+        (STATUS_OPEN, 'Открыт'),
+        (STATUS_WAITING, 'Ожидает ответа'),
+        (STATUS_CLOSED, 'Закрыт'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='support_conversations',
+        verbose_name='Пользователь',
+    )
+    agent = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_support_chats',
+        verbose_name='Оператор',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_OPEN,
+        verbose_name='Статус',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлён')
+
+    class Meta:
+        verbose_name = 'Чат поддержки'
+        verbose_name_plural = 'Чаты поддержки'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'Чат #{self.pk} — {self.user.username}'
+
+    @classmethod
+    def get_or_open_for_user(cls, user):
+        conversation = (
+            cls.objects
+            .filter(user=user)
+            .exclude(status=cls.STATUS_CLOSED)
+            .order_by('-updated_at')
+            .first()
+        )
+        if conversation:
+            return conversation
+        return cls.objects.create(user=user, status=cls.STATUS_OPEN)
+
+
+class SupportMessage(models.Model):
+    conversation = models.ForeignKey(
+        SupportConversation,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        verbose_name='Чат',
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='support_messages',
+        verbose_name='Отправитель',
+    )
+    text = models.TextField(verbose_name='Текст', max_length=2000)
+    is_from_support = models.BooleanField(default=False, verbose_name='От поддержки')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Отправлено')
+
+    class Meta:
+        verbose_name = 'Сообщение поддержки'
+        verbose_name_plural = 'Сообщения поддержки'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'#{self.pk} в чате {self.conversation_id}'

@@ -1,0 +1,79 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Чаты поддержки{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <h1 class="mb-0">Чаты поддержки</h1>
+  <span class="text-muted small">Новые без оператора: {{ unassigned|length }}</span>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <h2 class="h5 mb-3">Новые / без оператора</h2>
+    {% if unassigned %}
+      <div class="list-group shadow-sm">
+        {% for chat in unassigned %}
+          <a href="{% url 'support_conversation' chat.pk %}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between">
+              <strong>{{ chat.user.username }}</strong>
+              <span class="badge text-bg-warning">ожидает</span>
+            </div>
+            <div class="small text-muted">{{ chat.updated_at|date:"d.m.Y H:i" }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-secondary">Новых обращений нет.</div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <h2 class="h5 mb-3">Мои чаты</h2>
+    {% if my_chats %}
+      <div class="list-group shadow-sm">
+        {% for chat in my_chats %}
+          <a href="{% url 'support_conversation' chat.pk %}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between">
+              <strong>{{ chat.user.username }}</strong>
+              <span class="badge text-bg-dark">{{ chat.get_status_display }}</span>
+            </div>
+            <div class="small text-muted">{{ chat.updated_at|date:"d.m.Y H:i" }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-secondary">Пока нет закреплённых чатов.</div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <h2 class="h5 mb-3">У других операторов</h2>
+    {% if others %}
+      <div class="list-group shadow-sm mb-4">
+        {% for chat in others %}
+          <a href="{% url 'support_conversation' chat.pk %}" class="list-group-item list-group-item-action">
+            <strong>{{ chat.user.username }}</strong>
+            <div class="small text-muted">{{ chat.agent.username }} · {{ chat.updated_at|date:"d.m.Y H:i" }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-secondary mb-4">Пусто.</div>
+    {% endif %}
+
+    <h2 class="h5 mb-3">Недавно закрытые</h2>
+    {% if closed %}
+      <div class="list-group shadow-sm">
+        {% for chat in closed %}
+          <a href="{% url 'support_conversation' chat.pk %}" class="list-group-item list-group-item-action">
+            <strong>{{ chat.user.username }}</strong>
+            <div class="small text-muted">{{ chat.updated_at|date:"d.m.Y H:i" }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-secondary">Нет закрытых чатов.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

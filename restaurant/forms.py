@@ -298,3 +298,16 @@ class StockMovementEditForm(forms.ModelForm):
                 )
         return cleaned
 
+
+class SupportMessageForm(forms.Form):
+    text = forms.CharField(
+        label='Сообщение',
+        max_length=2000,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'Напишите сообщение…',
+            'id': 'support-message-input',
+        }),
+    )
+

@@ -20,6 +20,13 @@
       <a href="{% url 'accountant_consumption' %}" class="btn btn-sm btn-outline-primary">Отчёт по расходу</a>
       <a href="{% url 'accountant_revision_blank' %}" class="btn btn-sm btn-outline-warning">Бланк ревизии</a>
     {% endif %}
+    {% if is_support %}
+      <hr>
+      <a href="{% url 'support_inbox' %}" class="btn btn-sm btn-primary">Чаты поддержки</a>
+    {% else %}
+      <hr>
+      <a href="{% url 'support_chat' %}" class="btn btn-sm btn-outline-cream">Написать в поддержку</a>
+    {% endif %}
   </div>
 </div>
 

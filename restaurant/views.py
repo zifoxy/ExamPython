@@ -2,7 +2,7 @@ import csv
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth import login
@@ -13,7 +13,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from decimal import Decimal
 from collections import defaultdict
 
-from .models import Category, Dish, Order, OrderItem, Profile, Igridients, StockMovement
+from .models import (
+    Category, Dish, Order, OrderItem, Profile, Igridients, StockMovement,
+    SupportConversation, SupportMessage,
+)
 from .cart import Cart
 from .forms import (
     OrderCreateForm,
@@ -24,6 +27,7 @@ from .forms import (
     RecipeItemFormSet,
     PurchaseLineFormSet,
     StockMovementEditForm,
+    SupportMessageForm,
 )
 from .decorators import role_required
 from .stock_reports import build_revision_blank_rows
@@ -448,3 +452,162 @@ def accountant_revision_blank_export(request):
             '',
         ])
     return response
+
+
+def _is_support_user(user):
+    if user.is_superuser:
+        return True
+    profile = getattr(user, 'profile', None)
+    return bool(profile and profile.is_active and profile.is_support)
+
+
+def _serialize_support_message(msg):
+    return {
+        'id': msg.id,
+        'text': msg.text,
+        'is_from_support': msg.is_from_support,
+        'sender': msg.sender.username,
+        'created_at': msg.created_at.strftime('%d.%m.%Y %H:%M'),
+    }
+
+
+@login_required
+def support_chat(request):
+    """Чат пользователя с поддержкой (один открытый диалог)."""
+    if _is_support_user(request.user) and not request.user.is_superuser:
+        return redirect('support_inbox')
+
+    conversation = SupportConversation.get_or_open_for_user(request.user)
+
+    if request.method == 'POST':
+        form = SupportMessageForm(request.POST)
+        if form.is_valid():
+            SupportMessage.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                text=form.cleaned_data['text'].strip(),
+                is_from_support=False,
+            )
+            if conversation.status == SupportConversation.STATUS_CLOSED:
+                conversation.status = SupportConversation.STATUS_OPEN
+            else:
+                conversation.status = SupportConversation.STATUS_WAITING
+            conversation.save(update_fields=['status', 'updated_at'])
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                last = conversation.messages.order_by('-created_at').first()
+                return JsonResponse({'ok': True, 'message': _serialize_support_message(last)})
+            return redirect('support_chat')
+    else:
+        form = SupportMessageForm()
+
+    messages_qs = conversation.messages.select_related('sender')
+    return render(request, 'restaurant/support/chat.html', {
+        'conversation': conversation,
+        'chat_messages': messages_qs,
+        'form': form,
+        'is_agent_view': False,
+    })
+
+
+@login_required
+def support_chat_poll(request, pk):
+    """JSON-поллинг новых сообщений (как в современных чатах)."""
+    conversation = get_object_or_404(SupportConversation, pk=pk)
+    is_agent = _is_support_user(request.user)
+    if not is_agent and conversation.user_id != request.user.id:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    after_id = request.GET.get('after', '0')
+    try:
+        after_id = int(after_id)
+    except (TypeError, ValueError):
+        after_id = 0
+
+    qs = conversation.messages.select_related('sender').filter(pk__gt=after_id)
+    return JsonResponse({
+        'messages': [_serialize_support_message(m) for m in qs],
+        'status': conversation.status,
+        'status_display': conversation.get_status_display(),
+        'agent': conversation.agent.username if conversation.agent_id else None,
+    })
+
+
+@role_required(Profile.ROLE_SUPPORT)
+def support_inbox(request):
+    """Очередь чатов для операторов поддержки."""
+    open_chats = (
+        SupportConversation.objects
+        .exclude(status=SupportConversation.STATUS_CLOSED)
+        .select_related('user', 'agent')
+        .prefetch_related('messages')
+    )
+    my_chats = open_chats.filter(agent=request.user)
+    unassigned = open_chats.filter(agent__isnull=True)
+    others = open_chats.exclude(agent=request.user).exclude(agent__isnull=True)
+    closed = (
+        SupportConversation.objects
+        .filter(status=SupportConversation.STATUS_CLOSED)
+        .select_related('user', 'agent')[:20]
+    )
+    return render(request, 'restaurant/support/inbox.html', {
+        'my_chats': my_chats,
+        'unassigned': unassigned,
+        'others': others,
+        'closed': closed,
+    })
+
+
+@role_required(Profile.ROLE_SUPPORT)
+def support_conversation(request, pk):
+    """Диалог оператора с пользователем."""
+    conversation = get_object_or_404(
+        SupportConversation.objects.select_related('user', 'agent'),
+        pk=pk,
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'send')
+        if action == 'claim':
+            if conversation.agent_id is None:
+                conversation.agent = request.user
+                conversation.status = SupportConversation.STATUS_OPEN
+                conversation.save(update_fields=['agent', 'status', 'updated_at'])
+                messages.success(request, 'Вы подключились к чату')
+            return redirect('support_conversation', pk=pk)
+
+        if action == 'close':
+            conversation.status = SupportConversation.STATUS_CLOSED
+            conversation.save(update_fields=['status', 'updated_at'])
+            messages.info(request, 'Чат закрыт')
+            return redirect('support_inbox')
+
+        if action == 'reopen':
+            conversation.status = SupportConversation.STATUS_OPEN
+            conversation.save(update_fields=['status', 'updated_at'])
+            return redirect('support_conversation', pk=pk)
+
+        form = SupportMessageForm(request.POST)
+        if form.is_valid():
+            if conversation.agent_id is None:
+                conversation.agent = request.user
+            SupportMessage.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                text=form.cleaned_data['text'].strip(),
+                is_from_support=True,
+            )
+            conversation.status = SupportConversation.STATUS_OPEN
+            conversation.save(update_fields=['agent', 'status', 'updated_at'])
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                last = conversation.messages.order_by('-created_at').first()
+                return JsonResponse({'ok': True, 'message': _serialize_support_message(last)})
+            return redirect('support_conversation', pk=pk)
+    else:
+        form = SupportMessageForm()
+
+    return render(request, 'restaurant/support/chat.html', {
+        'conversation': conversation,
+        'chat_messages': conversation.messages.select_related('sender'),
+        'form': form,
+        'is_agent_view': True,
+    })
