@@ -605,9 +605,17 @@ def support_conversation(request, pk):
     else:
         form = SupportMessageForm()
 
+    user_orders = (
+        Order.objects
+        .filter(user=conversation.user)
+        .prefetch_related('items')
+        .order_by('-created_at')[:30]
+    )
+
     return render(request, 'restaurant/support/chat.html', {
         'conversation': conversation,
         'chat_messages': conversation.messages.select_related('sender'),
         'form': form,
         'is_agent_view': True,
+        'user_orders': user_orders,
     })
