@@ -81,8 +81,19 @@ def dish_detail(request, pk):
     })
 
 
+def _redirect_guests_to_register(request):
+    if request.user.is_authenticated:
+        return None
+    messages.warning(request, 'Зарегистрируйтесь, прежде чем сделать заказ')
+    return redirect('register')
+
+
 @require_POST
 def cart_add(request, dish_id):
+    deny = _redirect_guests_to_register(request)
+    if deny:
+        return deny
+
     cart = Cart(request)
     dish = get_object_or_404(Dish, id=dish_id, is_available=True)
     quantity = _parse_quantity(request.POST.get('quantity', 1))
@@ -93,6 +104,9 @@ def cart_add(request, dish_id):
 
 @require_POST
 def cart_remove(request, dish_id):
+    deny = _redirect_guests_to_register(request)
+    if deny:
+        return deny
     cart = Cart(request)
     cart.remove(dish_id)
     return redirect('cart_detail')
@@ -100,6 +114,9 @@ def cart_remove(request, dish_id):
 
 @require_POST
 def cart_update(request, dish_id):
+    deny = _redirect_guests_to_register(request)
+    if deny:
+        return deny
     cart = Cart(request)
     quantity = _parse_quantity(request.POST.get('quantity', 1))
     cart.update(dish_id, quantity)
@@ -107,6 +124,9 @@ def cart_update(request, dish_id):
 
 
 def cart_detail(request):
+    deny = _redirect_guests_to_register(request)
+    if deny:
+        return deny
     cart = Cart(request)
     return render(request, 'restaurant/cart.html', {'cart': cart})
 

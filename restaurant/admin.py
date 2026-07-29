@@ -39,8 +39,6 @@ class IgridientsAdmin(admin.ModelAdmin):
     list_editable = ('unit',)
 
     def get_readonly_fields(self, request, obj=None):
-        # Остаток меняется только через StockMovement (приход / ревизия).
-        # При создании ингредиента начальный остаток можно задать.
         if obj is not None:
             return ('stock_quantity',)
         return ()
