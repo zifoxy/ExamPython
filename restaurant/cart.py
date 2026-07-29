@@ -8,7 +8,21 @@ class Cart:
         cart = self.session.get('cart')
         if not cart:
             cart = self.session['cart'] = {}
-        self.cart = cart
+        cleaned = {}
+        for dish_id, data in cart.items():
+            if not isinstance(data, dict):
+                continue
+            quantity = data.get('quantity', 0)
+            try:
+                quantity = int(quantity)
+            except (TypeError, ValueError):
+                continue
+            if quantity > 0:
+                cleaned[str(dish_id)] = {'quantity': quantity}
+        if cleaned != cart:
+            self.session['cart'] = cleaned
+            self.session.modified = True
+        self.cart = self.session['cart']
 
     def add(self, dish_id, quantity=1):
         dish_id = str(dish_id)
@@ -41,11 +55,14 @@ class Cart:
         self.session.modified = True
 
     def __iter__(self):
-        dish_ids = self.cart.keys()
+        dish_ids = list(self.cart.keys())
         dishes = Dish.objects.filter(id__in=dish_ids, is_available=True)
-        cart = self.cart.copy()
         for dish in dishes:
-            item = cart[str(dish.id)]
+            # Копия, чтобы не записывать Dish в session['cart']
+            raw = self.cart.get(str(dish.id))
+            if not raw:
+                continue
+            item = dict(raw)
             item['dish'] = dish
             item['price'] = dish.price
             item['total'] = dish.price * item['quantity']
