@@ -47,7 +47,7 @@
           </div>
         </div>
 
-        <form method="post" class="d-grid gap-2">
+        <form method="post" class="d-grid gap-2 checkout-actions">
           {% csrf_token %}
           <button type="submit" name="action" value="pay" class="btn btn-success btn-lg">
             <i class="bi bi-check2-circle"></i> Оплатить {{ total_price }} ₽

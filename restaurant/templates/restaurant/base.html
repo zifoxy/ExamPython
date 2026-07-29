@@ -398,22 +398,182 @@
       background-color: rgba(210, 230, 255, 0.95);
       color: #1a3a60;
     }
+
+    /* --- Адаптив --- */
+    img, video, svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .table-responsive {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-actions {
+      flex-wrap: wrap;
+    }
+
+    .phone-link .phone-text {
+      display: none;
+    }
+
+    @media (min-width: 576px) {
+      .phone-link .phone-text {
+        display: inline;
+      }
+    }
+
+    @media (max-width: 991.98px) {
+      .site-nav .navbar-collapse {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--fb-border);
+      }
+
+      .nav-actions {
+        width: 100%;
+        padding-top: 0.5rem;
+      }
+
+      .nav-actions .btn-amber {
+        flex: 1 1 auto;
+      }
+
+      main.container {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+      }
+
+      h1 {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+      }
+
+      .display-6 {
+        font-size: clamp(1.6rem, 6vw, 2.2rem);
+      }
+
+      .card-img-top {
+        height: 160px !important;
+        object-fit: cover;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .site-bg {
+        background-attachment: scroll;
+        background-size: cover;
+        background-position: center 55%;
+      }
+
+      .btn-lg {
+        padding: 0.55rem 0.9rem;
+        font-size: 1rem;
+      }
+
+      .table td, .table th {
+        white-space: nowrap;
+      }
+
+      .cart-actions,
+      .checkout-actions {
+        width: 100%;
+      }
+
+      .cart-actions .btn,
+      .checkout-actions .btn {
+        width: 100%;
+      }
+    }
+
+    /* Категории меню — горизонтальный скролл на телефоне */
+    .category-scroll {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.35rem;
+      margin-bottom: 1rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .category-scroll .list-group-item {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      border-radius: 999px !important;
+      padding: 0.45rem 0.9rem;
+    }
+
+    @media (min-width: 992px) {
+      .category-scroll-mobile {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 991.98px) {
+      .category-sidebar-desktop {
+        display: none !important;
+      }
+    }
+
+    /* Карточки корзины на очень узких экранах */
+    .cart-mobile-list {
+      display: none;
+    }
+
+    @media (max-width: 575.98px) {
+      .cart-desktop-table {
+        display: none !important;
+      }
+      .cart-mobile-list {
+        display: block;
+      }
+      .cart-mobile-item {
+        border: 1px solid var(--fb-border);
+        border-radius: 12px;
+        padding: 0.85rem;
+        margin-bottom: 0.75rem;
+        background: var(--fb-panel);
+      }
+    }
+
+    .chat-shell,
+    .orders-panel {
+      max-width: 100%;
+    }
+
+    @media (max-width: 991.98px) {
+      .chat-shell,
+      .orders-panel {
+        height: min(60vh, 520px);
+        max-height: none;
+      }
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
   <div class="site-bg" aria-hidden="true"></div>
 
-  <nav class="navbar navbar-expand-lg site-nav mb-4">
+  <nav class="navbar navbar-expand-lg site-nav mb-3 mb-lg-4">
     <div class="container">
       <a class="navbar-brand fw-bold" href="{% url 'menu' %}">
         <i class="bi bi-fire"></i> FireBite
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+      <div class="d-flex align-items-center gap-2 d-lg-none">
+        <button type="button" class="btn btn-theme" id="themeToggleMobile" title="Сменить тему" aria-label="Сменить тему">
+          <i class="bi bi-moon-stars-fill icon-moon"></i>
+          <i class="bi bi-sun-fill icon-sun"></i>
+        </button>
+        <a class="btn btn-amber btn-sm" href="{% url 'cart_detail' %}">
+          <i class="bi bi-cart3"></i>
+          {% if cart_count %}<span class="badge text-bg-dark">{{ cart_count }}</span>{% endif %}
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Меню">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
       <div class="collapse navbar-collapse" id="navMain">
-        <ul class="navbar-nav me-auto">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item">
             <a class="nav-link" href="{% url 'menu' %}">Меню</a>
           </li>
@@ -448,14 +608,14 @@
           {% endif %}
         </ul>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 nav-actions">
           <a class="nav-link phone-link d-inline-flex align-items-center gap-1 px-2"
              href="tel:+79999999999"
              title="Позвонить">
             <i class="bi bi-telephone-fill"></i>
-            <span>+7(999)999-99-99</span>
+            <span class="phone-text">+7(999)999-99-99</span>
           </a>
-          <button type="button" class="btn btn-theme" id="themeToggle" title="Сменить тему" aria-label="Сменить тему">
+          <button type="button" class="btn btn-theme d-none d-lg-inline-flex" id="themeToggle" title="Сменить тему" aria-label="Сменить тему">
             <i class="bi bi-moon-stars-fill icon-moon"></i>
             <i class="bi bi-sun-fill icon-sun"></i>
           </button>
@@ -469,9 +629,9 @@
             <a class="btn btn-outline-cream btn-sm" href="{% url 'login' %}">Вход</a>
             <a class="btn btn-light btn-sm" href="{% url 'register' %}">Регистрация</a>
           {% endif %}
-          <a class="btn btn-amber" href="{% url 'cart_detail' %}">
+          <a class="btn btn-amber d-none d-lg-inline-flex align-items-center gap-1" href="{% url 'cart_detail' %}">
             <i class="bi bi-cart3"></i>
-            Корзина
+            <span class="d-none d-xl-inline">Корзина</span>
             {% if cart_count %}
               <span class="badge text-bg-dark">{{ cart_count }}</span>
             {% endif %}
@@ -506,8 +666,11 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (function () {
-      var btn = document.getElementById('themeToggle');
-      if (!btn) return;
+      var buttons = [
+        document.getElementById('themeToggle'),
+        document.getElementById('themeToggleMobile'),
+      ].filter(Boolean);
+      if (!buttons.length) return;
 
       function currentTheme() {
         return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
@@ -516,13 +679,18 @@
       function setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         try { localStorage.setItem('firebite-theme', theme); } catch (e) {}
-        btn.setAttribute('title', theme === 'light' ? 'Включить ночную тему' : 'Включить дневную тему');
-        btn.setAttribute('aria-label', btn.getAttribute('title'));
+        var title = theme === 'light' ? 'Включить ночную тему' : 'Включить дневную тему';
+        buttons.forEach(function (btn) {
+          btn.setAttribute('title', title);
+          btn.setAttribute('aria-label', title);
+        });
       }
 
       setTheme(currentTheme());
-      btn.addEventListener('click', function () {
-        setTheme(currentTheme() === 'light' ? 'dark' : 'light');
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          setTheme(currentTheme() === 'light' ? 'dark' : 'light');
+        });
       });
     })();
   </script>

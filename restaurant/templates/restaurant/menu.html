@@ -2,12 +2,21 @@
 {% block title %}Меню — FireBite{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Меню</h1>
+<h1 class="mb-3 mb-md-4">Меню</h1>
 
 {% if categories %}
+{# Мобильные категории — горизонтальный скролл #}
+<div class="category-scroll category-scroll-mobile list-group list-group-horizontal">
+  {% for category in categories %}
+    <a href="#category-{{ category.slug }}"
+       class="list-group-item list-group-item-action category-nav-link">
+      {{ category.name }}
+    </a>
+  {% endfor %}
+</div>
+
 <div class="row">
-  {# Левая панель категорий #}
-  <aside class="col-lg-3 mb-4">
+  <aside class="col-lg-3 mb-4 category-sidebar-desktop">
     <div class="list-group sticky-top" style="top: 1rem;">
       {% for category in categories %}
         <a href="#category-{{ category.slug }}"
@@ -18,10 +27,9 @@
     </div>
   </aside>
 
-  {# Основное меню #}
-  <div class="col-lg-9">
+  <div class="col-12 col-lg-9">
     {% for category in categories %}
-      <section id="category-{{ category.slug }}" class="mb-5" style="scroll-margin-top: 1rem;">
+      <section id="category-{{ category.slug }}" class="mb-4 mb-md-5" style="scroll-margin-top: 4.5rem;">
         <h2 class="h4 mb-3 border-bottom pb-2">{{ category.name }}</h2>
         <div class="row g-3">
           {% for dish in category.dishes.all %}
@@ -85,7 +93,9 @@
       document.querySelectorAll('.category-nav-link').forEach(function (el) {
         el.classList.remove('active');
       });
-      this.classList.add('active');
+      document.querySelectorAll('.category-nav-link[href="' + this.getAttribute('href') + '"]').forEach(function (el) {
+        el.classList.add('active');
+      });
     });
   });
 </script>

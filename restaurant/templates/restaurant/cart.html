@@ -2,14 +2,14 @@
 {% block title %}Корзина{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Корзина</h1>
+<h1 class="mb-3 mb-md-4">Корзина</h1>
 
 {% if cart|length == 0 %}
   <div class="alert alert-secondary">
     Корзина пуста. <a href="{% url 'menu' %}" class="alert-link">Перейти в меню</a>
   </div>
 {% else %}
-  <div class="table-responsive">
+  <div class="table-responsive cart-desktop-table">
     <table class="table table-hover align-middle bg-white shadow-sm">
       <thead class="table-dark">
         <tr>
@@ -48,11 +48,36 @@
     </table>
   </div>
 
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+  <div class="cart-mobile-list">
+    {% for item in cart %}
+      <div class="cart-mobile-item">
+        <div class="fw-semibold mb-1">{{ item.dish.name }}</div>
+        <div class="small text-muted mb-2">{{ item.price }} ₽ / порция</div>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <form method="post" action="{% url 'cart_update' item.dish.id %}" class="d-flex gap-2 align-items-center">
+            {% csrf_token %}
+            <label class="small mb-0" for="qty-{{ item.dish.id }}">Кол-во</label>
+            <input class="form-control form-control-sm" id="qty-{{ item.dish.id }}" type="number"
+                   name="quantity" value="{{ item.quantity }}" min="1" style="width: 72px;">
+            <button class="btn btn-sm btn-outline-primary" type="submit">OK</button>
+          </form>
+          <div class="fw-bold">{{ item.total }} ₽</div>
+        </div>
+        <form method="post" action="{% url 'cart_remove' item.dish.id %}">
+          {% csrf_token %}
+          <button class="btn btn-sm btn-outline-danger w-100" type="submit">
+            <i class="bi bi-trash"></i> Удалить
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-flex flex-column flex-sm-row flex-wrap justify-content-between align-items-stretch align-items-sm-center gap-3 mt-3">
     <p class="fs-4 mb-0">
       Итого: <span class="text-danger fw-bold">{{ cart.get_total_price }} ₽</span>
     </p>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-column flex-sm-row gap-2 cart-actions">
       <a href="{% url 'menu' %}" class="btn btn-outline-secondary">К меню</a>
       <a href="{% url 'order_create' %}" class="btn btn-success btn-lg">
         Оформить заказ
