@@ -112,20 +112,23 @@ def order_create(request):
     if request.method == 'POST':
         form = OrderCreateForm(request.POST)
         if form.is_valid():
-            order = form.save(commit=False)
-            order.user = request.user
-            order.total_price = cart.get_total_price()
-            order.save()
-            for item in cart:
-                OrderItem.objects.create(
-                    order=order,
-                    dish=item['dish'],
-                    dish_name=item['dish'].name,
-                    price=item['price'],
-                    quantity=item['quantity'],
-                )
-            cart.clear()
-            return redirect('order_success', order_id=order.id)
+            request.session['pending_checkout'] = {
+                'customer_name': form.cleaned_data['customer_name'],
+                'phone': form.cleaned_data['phone'],
+                'address': form.cleaned_data['address'],
+                'comment': form.cleaned_data.get('comment') or '',
+                'total_price': str(cart.get_total_price()),
+                'items': [
+                    {
+                        'dish_id': item['dish'].id,
+                        'dish_name': item['dish'].name,
+                        'price': str(item['price']),
+                        'quantity': item['quantity'],
+                    }
+                    for item in cart
+                ],
+            }
+            return redirect('payment_stub')
     else:
         form = OrderCreateForm(initial={
             'customer_name': request.user.get_full_name() or request.user.username,
@@ -134,6 +137,57 @@ def order_create(request):
     return render(request, 'restaurant/checkout.html', {
         'cart': cart,
         'form': form,
+    })
+
+
+@login_required
+def payment_stub(request):
+    """Заглушка оплаты: имитация успешной / неуспешной оплаты."""
+    pending = request.session.get('pending_checkout')
+    cart = Cart(request)
+    if not pending or len(cart) == 0:
+        messages.warning(request, 'Нет заказа для оплаты')
+        return redirect('cart_detail')
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'pay')
+        if action == 'cancel':
+            request.session.pop('pending_checkout', None)
+            messages.info(request, 'Оплата отменена')
+            return redirect('cart_detail')
+
+        if action == 'fail':
+            messages.error(request, 'Оплата не прошла (тестовый отказ банка). Попробуйте ещё раз.')
+            return redirect('payment_stub')
+
+        # Имитация успешной оплаты
+        order = Order.objects.create(
+            user=request.user,
+            customer_name=pending['customer_name'],
+            phone=pending['phone'],
+            address=pending['address'],
+            comment=pending.get('comment') or '',
+            total_price=Decimal(pending['total_price']),
+            status='new',
+        )
+        for item in pending.get('items', []):
+            dish = Dish.objects.filter(pk=item['dish_id']).first()
+            OrderItem.objects.create(
+                order=order,
+                dish=dish,
+                dish_name=item['dish_name'],
+                price=Decimal(item['price']),
+                quantity=item['quantity'],
+            )
+        cart.clear()
+        request.session.pop('pending_checkout', None)
+        messages.success(request, 'Оплата прошла успешно (тестовый режим)')
+        return redirect('order_success', order_id=order.id)
+
+    return render(request, 'restaurant/payment.html', {
+        'pending': pending,
+        'total_price': pending['total_price'],
+        'items': pending.get('items', []),
     })
 
 
@@ -149,6 +203,7 @@ def order_success(request, order_id):
         return redirect('cabinet')
     return render(request, 'restaurant/order_success.html', {
         'order_id': order.id,
+        'order': order,
     })
 
 

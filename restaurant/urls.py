@@ -12,6 +12,7 @@ urlpatterns = [
     path('cart/remove/<int:dish_id>/', views.cart_remove, name='cart_remove'),
     path('cart/update/<int:dish_id>/', views.cart_update, name='cart_update'),
     path('checkout/', views.order_create, name='order_create'),
+    path('checkout/payment/', views.payment_stub, name='payment_stub'),
     path('order/success/<int:order_id>/', views.order_success, name='order_success'),
 
     # Auth
