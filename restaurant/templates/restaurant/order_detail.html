@@ -1,6 +1,56 @@
 {% extends 'restaurant/base.html' %}
 {% block title %}Заказ #{{ order.id }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  .status-track {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .status-step {
+    flex: 1 1 120px;
+    min-width: 110px;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--fb-border);
+    background: rgba(0, 0, 0, 0.08);
+    opacity: 0.55;
+  }
+  [data-theme="light"] .status-step {
+    background: rgba(0, 0, 0, 0.03);
+  }
+  .status-step.done,
+  .status-step.current {
+    opacity: 1;
+  }
+  .status-step.done {
+    border-color: rgba(100, 160, 90, 0.55);
+    background: rgba(80, 140, 70, 0.2);
+  }
+  .status-step.current {
+    border-color: rgba(212, 140, 61, 0.7);
+    background: rgba(212, 140, 61, 0.22);
+    font-weight: 600;
+  }
+  .status-step .step-num {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-bottom: 0.2rem;
+  }
+  .status-canceled {
+    border: 1px solid rgba(139, 58, 66, 0.5);
+    background: rgba(139, 58, 66, 0.18);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb">
@@ -9,12 +59,32 @@
   </ol>
 </nav>
 
-<h1 class="mb-3">Заказ #{{ order.id }}</h1>
+<h1 class="mb-2">Заказ #{{ order.id }}</h1>
 <p class="text-muted mb-4">
   {{ order.created_at|date:"d.m.Y H:i" }} ·
-  {{ order.get_status_display }} ·
+  <strong id="order-status-label">{{ order.get_status_display }}</strong> ·
   {{ order.total_price }} ₽
 </p>
+
+<h2 class="h5 mb-3">Статус заказа</h2>
+{% if is_canceled %}
+  <div class="status-canceled" id="order-status-box" data-status="canceled">
+    Заказ отменён.
+  </div>
+{% else %}
+  <div class="status-track" id="order-status-box"
+       data-status="{{ order.status }}"
+       data-poll-url="{% url 'order_status_poll' order.id %}">
+    {% for code, label in status_steps %}
+      <div class="status-step {% if current_index > forloop.counter0 %}done{% elif current_index == forloop.counter0 %}current{% endif %}"
+           data-step="{{ code }}">
+        <span class="step-num">Шаг {{ forloop.counter }}</span>
+        {{ label }}
+      </div>
+    {% endfor %}
+  </div>
+  <p class="small text-muted mb-4">Статус обновляется автоматически. Вы видите только свои заказы.</p>
+{% endif %}
 
 <div class="card shadow-sm mb-4">
   <div class="card-body">
@@ -52,4 +122,40 @@
 </div>
 
 <a href="{% url 'cabinet' %}" class="btn btn-outline-secondary">← В кабинет</a>
+
+{% if not is_canceled %}
+<script>
+(function () {
+  var box = document.getElementById('order-status-box');
+  var label = document.getElementById('order-status-label');
+  if (!box || !box.dataset.pollUrl) return;
+  var steps = ['new', 'cooking', 'delivery', 'done'];
+
+  function paint(status) {
+    if (status === 'canceled') {
+      window.location.reload();
+      return;
+    }
+    var idx = steps.indexOf(status);
+    box.querySelectorAll('.status-step').forEach(function (el, i) {
+      el.classList.remove('done', 'current');
+      if (idx > i) el.classList.add('done');
+      else if (idx === i) el.classList.add('current');
+    });
+    box.dataset.status = status;
+  }
+
+  setInterval(function () {
+    fetch(box.dataset.pollUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.status) return;
+        if (label) label.textContent = data.status_display;
+        if (data.status !== box.dataset.status) paint(data.status);
+      })
+      .catch(function () {});
+  }, 4000);
+})();
+</script>
+{% endif %}
 {% endblock %}

@@ -21,6 +21,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('cabinet/', views.cabinet, name='cabinet'),
     path('cabinet/orders/<int:order_id>/', views.order_detail, name='order_detail'),
+    path('cabinet/orders/<int:order_id>/status/', views.order_status_poll, name='order_status_poll'),
 
     # Поддержка
     path('support/chat/', views.support_chat, name='support_chat'),

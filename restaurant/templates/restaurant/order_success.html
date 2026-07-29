@@ -12,6 +12,10 @@
         <h1 class="h3">Заказ #{{ order_id }} принят!</h1>
         <p class="text-muted mb-1">Оплата прошла успешно (тестовый режим).</p>
         <p class="text-muted mb-4">Мы уже готовим. Курьер скоро будет у вас.</p>
+        <a href="{% url 'order_detail' order_id %}" class="btn btn-amber mb-2">
+          Отследить статус
+        </a>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
         <a href="{% url 'menu' %}" class="btn btn-primary">
           Вернуться в меню
         </a>
@@ -20,6 +24,7 @@
             В личный кабинет
           </a>
         {% endif %}
+        </div>
       </div>
     </div>
   </div>

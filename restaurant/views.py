@@ -203,16 +203,22 @@ def payment_stub(request):
     })
 
 
+def _user_can_view_order(user, order):
+    """Пользователь видит только свой заказ (суперюзер — любой)."""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return order.user_id is not None and order.user_id == user.id
+
+
 def order_success(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
-    if (
-        order.user_id
-        and request.user.is_authenticated
-        and order.user_id != request.user.id
-        and not request.user.is_superuser
-    ):
+    if not _user_can_view_order(request.user, order):
         messages.error(request, 'Нет доступа к этому заказу')
-        return redirect('cabinet')
+        if request.user.is_authenticated:
+            return redirect('cabinet')
+        return redirect('login')
     return render(request, 'restaurant/order_success.html', {
         'order_id': order.id,
         'order': order,
@@ -255,13 +261,45 @@ def cabinet(request):
 
 @login_required
 def order_detail(request, order_id):
+    """Отслеживание статуса и состав — только свой заказ."""
     order = get_object_or_404(
         Order.objects.prefetch_related('items'),
         pk=order_id,
-        user=request.user,
     )
+    if not _user_can_view_order(request.user, order):
+        messages.error(request, 'Вы можете просматривать только свои заказы')
+        return redirect('cabinet')
+
+    status_steps = [
+        ('new', 'Новый'),
+        ('cooking', 'Готовится'),
+        ('delivery', 'Доставляется'),
+        ('done', 'Выполнен'),
+    ]
+    current_codes = [code for code, _ in status_steps]
+    try:
+        current_index = current_codes.index(order.status)
+    except ValueError:
+        current_index = -1  # canceled или неизвестный
+
     return render(request, 'restaurant/order_detail.html', {
         'order': order,
+        'status_steps': status_steps,
+        'current_index': current_index,
+        'is_canceled': order.status == 'canceled',
+    })
+
+
+@login_required
+def order_status_poll(request, order_id):
+    """JSON-статус своего заказа для автообновления."""
+    order = get_object_or_404(Order, pk=order_id)
+    if not _user_can_view_order(request.user, order):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    return JsonResponse({
+        'id': order.id,
+        'status': order.status,
+        'status_display': order.get_status_display(),
     })
 
 
