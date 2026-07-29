@@ -613,7 +613,7 @@
                   {% endif %}
                 </a>
               </li>
-            {% else %}
+            {% elif not is_moderator and not is_accountant %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'support_chat' %}">Поддержка</a>
               </li>
