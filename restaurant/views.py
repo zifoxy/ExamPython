@@ -20,6 +20,7 @@ from .models import (
 from .cart import Cart
 from .forms import (
     OrderCreateForm,
+    OrderStatusForm,
     DishForm,
     RegisterForm,
     RevisionForm,
@@ -321,6 +322,78 @@ def order_status_poll(request, order_id):
         'status': order.status,
         'status_display': order.get_status_display(),
     })
+
+
+@role_required(Profile.ROLE_MODERATOR)
+def moderator_orders(request):
+    """Список заказов пользователей со сменой статуса."""
+    status_filter = request.GET.get('status', '')
+    orders = (
+        Order.objects
+        .select_related('user')
+        .prefetch_related('items')
+        .order_by('-created_at')
+    )
+    valid_statuses = {code for code, _ in Order.STATUS_CHOICES}
+    if status_filter in valid_statuses:
+        orders = orders.filter(status=status_filter)
+    else:
+        status_filter = ''
+
+    return render(request, 'restaurant/moderator/orders.html', {
+        'orders': orders,
+        'status_choices': Order.STATUS_CHOICES,
+        'status_filter': status_filter,
+    })
+
+
+@role_required(Profile.ROLE_MODERATOR)
+def moderator_order_detail(request, order_id):
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items').select_related('user'),
+        pk=order_id,
+    )
+    if request.method == 'POST':
+        form = OrderStatusForm(request.POST, instance=order)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f'Статус заказа #{order.id}: {order.get_status_display()}',
+            )
+            return redirect('moderator_order_detail', order_id=order.id)
+    else:
+        form = OrderStatusForm(instance=order)
+
+    return render(request, 'restaurant/moderator/order_detail.html', {
+        'order': order,
+        'form': form,
+    })
+
+
+@role_required(Profile.ROLE_MODERATOR)
+@require_POST
+def moderator_order_status(request, order_id):
+    """Быстрая смена статуса со списка заказов."""
+    order = get_object_or_404(Order, pk=order_id)
+    form = OrderStatusForm(request.POST, instance=order)
+    if form.is_valid():
+        form.save()
+        messages.success(
+            request,
+            f'Заказ #{order.id}: {order.get_status_display()}',
+        )
+    else:
+        messages.error(request, 'Некорректный статус заказа')
+
+    next_url = request.POST.get('next')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect('moderator_orders')
 
 
 @role_required(Profile.ROLE_MODERATOR)

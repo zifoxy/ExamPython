@@ -1,0 +1,75 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Заказы{% endblock %}
+
+{% block content %}
+<h1 class="mb-2">Заказы пользователей</h1>
+<p class="text-muted mb-4">Меняйте статус: новый → готовится → доставляется → выполнен.</p>
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'moderator_orders' %}"
+     class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    Все
+  </a>
+  {% for code, label in status_choices %}
+    <a href="{% url 'moderator_orders' %}?status={{ code }}"
+       class="btn btn-sm {% if status_filter == code %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if orders %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Дата</th>
+          <th>Клиент</th>
+          <th>Телефон</th>
+          <th>Адрес</th>
+          <th>Сумма</th>
+          <th style="min-width: 220px;">Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>{{ order.id }}</td>
+            <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+            <td>
+              {{ order.customer_name }}
+              {% if order.user %}
+                <div class="small text-muted">@{{ order.user.username }}</div>
+              {% endif %}
+            </td>
+            <td>{{ order.phone }}</td>
+            <td>{{ order.address }}</td>
+            <td>{{ order.total_price }} ₽</td>
+            <td>
+              <form method="post" action="{% url 'moderator_order_status' order.id %}" class="d-flex gap-2 align-items-center">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <select name="status" class="form-select form-select-sm">
+                  {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if order.status == code %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary text-nowrap">OK</button>
+              </form>
+            </td>
+            <td>
+              <a href="{% url 'moderator_order_detail' order.id %}" class="btn btn-sm btn-outline-secondary">
+                Состав
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary">Заказов пока нет.</div>
+{% endif %}
+{% endblock %}

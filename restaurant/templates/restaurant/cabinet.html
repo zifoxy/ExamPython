@@ -12,6 +12,11 @@
       <strong>Роль:</strong>
       {% if profile %}{{ profile.get_role_display }}{% else %}Пользователь{% endif %}
     </p>
+    {% if is_moderator %}
+      <hr>
+      <a href="{% url 'moderator_orders' %}" class="btn btn-sm btn-primary">Заказы пользователей</a>
+      <a href="{% url 'dish_create' %}" class="btn btn-sm btn-outline-primary">Добавить блюдо</a>
+    {% endif %}
     {% if is_accountant %}
       <hr>
       <a href="{% url 'accountant_ingredients' %}" class="btn btn-sm btn-primary">Склад и ревизия</a>

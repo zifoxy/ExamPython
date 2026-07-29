@@ -28,8 +28,18 @@ class OrderCreateForm(forms.ModelForm):
             'comment': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
+
                 'placeholder': 'Код домофона, этаж...',
             }),
+        }
+
+
+class OrderStatusForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = ('status',)
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-select form-select-sm'}),
         }
 
 

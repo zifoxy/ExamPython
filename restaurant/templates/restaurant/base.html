@@ -596,6 +596,9 @@
           {% if user.is_authenticated %}
             {% if is_moderator %}
               <li class="nav-item">
+                <a class="nav-link" href="{% url 'moderator_orders' %}">Заказы</a>
+              </li>
+              <li class="nav-item">
                 <a class="nav-link" href="{% url 'dish_create' %}">Добавить блюдо</a>
               </li>
             {% endif %}
