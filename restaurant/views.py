@@ -65,8 +65,20 @@ def terms_of_use(request):
 
 
 def dish_detail(request, pk):
-    dish = get_object_or_404(Dish, pk=pk, is_available=True)
-    return render(request, 'restaurant/dish_detail.html', {'dish': dish})
+    dish = get_object_or_404(
+        Dish.objects.select_related('category').prefetch_related('recipe_items__igridients'),
+        pk=pk,
+        is_available=True,
+    )
+    composition = [
+        item.igridients.name
+        for item in dish.recipe_items.all()
+        if item.igridients_id
+    ]
+    return render(request, 'restaurant/dish_detail.html', {
+        'dish': dish,
+        'composition': composition,
+    })
 
 
 @require_POST
