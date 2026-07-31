@@ -1,0 +1,119 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Списания{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item active">Списания</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="mb-0">Списания ингредиентов</h1>
+  <a href="{% url 'accountant_movements' %}" class="btn btn-outline-secondary btn-sm">Все движения</a>
+</div>
+
+<p class="text-muted mb-4">
+  Журнал списаний (в том числе от модераторов).
+  При каждом списании указанные ингредиенты <strong>автоматически уходят со склада</strong>
+  — остаток уменьшается сразу.
+</p>
+
+<form method="get" class="row g-3 align-items-end mb-4" id="period-form">
+  {% for field in form %}
+    <div class="col-auto">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+        <div class="text-danger small">{{ field.errors|striptags }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% if form.non_field_errors %}
+    <div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
+  {% endif %}
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Показать</button>
+    <a href="{% url 'accountant_write_offs' %}" class="btn btn-outline-secondary">Все</a>
+  </div>
+</form>
+
+{% if write_offs and total_qty_by_unit %}
+  <div class="alert alert-secondary mb-4">
+    {% if form.is_valid %}Списано за период:{% else %}Всего списано:{% endif %}
+    {% for unit, qty in total_qty_by_unit.items %}
+      <strong>{{ qty }} {{ unit }}</strong>{% if not forloop.last %}; {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if write_offs %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Дата</th>
+          <th>Ингредиент</th>
+          <th>Списано</th>
+          <th>Кто списал</th>
+          <th>Причина</th>
+          <th>Остаток сейчас</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in write_offs %}
+          <tr>
+            <td>{{ m.pk }}</td>
+            <td>{{ m.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ m.ingredient.name }}</td>
+            <td class="text-danger fw-semibold">
+              {{ m.quantity }} {{ m.ingredient.get_unit_display }}
+            </td>
+            <td>{% if m.created_by %}{{ m.created_by.username }}{% else %}—{% endif %}</td>
+            <td>{{ m.note|default:"—" }}</td>
+            <td class="{% if m.ingredient.stock_quantity < 0 %}text-danger fw-semibold{% endif %}">
+              {{ m.ingredient.stock_quantity }} {{ m.ingredient.get_unit_display }}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'accountant_movement_edit' m.pk %}" class="btn btn-sm btn-outline-primary">
+                Изменить
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-secondary">
+    {% if form.is_bound and form.is_valid %}
+      Списаний за выбранный период нет.
+    {% else %}
+      Списаний пока нет.
+    {% endif %}
+  </div>
+{% endif %}
+
+<a href="{% url 'accountant_ingredients' %}" class="btn btn-outline-secondary mt-3">← К складу</a>
+
+<script>
+(function () {
+  var form = document.getElementById('period-form');
+  if (!form) return;
+  var period = form.querySelector('[name="period"]');
+  var from = form.querySelector('[name="date_from"]');
+  var to = form.querySelector('[name="date_to"]');
+  if (!period || !from || !to) return;
+  function sync() {
+    var preset = period.value !== '';
+    from.disabled = preset;
+    to.disabled = preset;
+  }
+  period.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

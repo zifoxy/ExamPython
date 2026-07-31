@@ -301,6 +301,90 @@ PurchaseLineFormSet = forms.formset_factory(
 )
 
 
+class ModeratorWriteOffForm(forms.Form):
+    ingredient = IngredientChoiceField(
+        queryset=Igridients.objects.all(),
+        label='Ингредиент',
+        required=False,
+        widget=IngredientSelect(attrs={'class': 'form-select'}),
+    )
+    quantity = forms.DecimalField(
+        label='Количество',
+        required=False,
+        min_value=Decimal('0.01'),
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01',
+            'min': '0.01',
+            'placeholder': '0',
+        }),
+    )
+    reason = forms.CharField(
+        label='Причина списания',
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Обязательно укажите причину',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        unit_map = {
+            str(ing.pk): ing.get_unit_display()
+            for ing in Igridients.objects.all()
+        }
+        self.fields['ingredient'].widget.unit_map = unit_map
+        self.fields['ingredient'].queryset = Igridients.objects.all()
+
+    def clean(self):
+        cleaned = super().clean()
+        ingredient = cleaned.get('ingredient')
+        quantity = cleaned.get('quantity')
+        reason = (cleaned.get('reason') or '').strip()
+        cleaned['reason'] = reason
+
+        filled = bool(ingredient or quantity or reason)
+        if not filled:
+            return cleaned
+
+        if not ingredient:
+            self.add_error('ingredient', 'Выберите ингредиент')
+        if not quantity:
+            self.add_error('quantity', 'Укажите количество')
+        if not reason:
+            self.add_error('reason', 'Укажите причину списания')
+        return cleaned
+
+
+class ModeratorWriteOffFormSet(forms.BaseFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        filled = [
+            form
+            for form in self.forms
+            if form.cleaned_data.get('ingredient')
+            and form.cleaned_data.get('quantity')
+            and form.cleaned_data.get('reason')
+        ]
+        if not filled:
+            raise forms.ValidationError(
+                'Добавьте хотя бы одну позицию: ингредиент, количество и причину'
+            )
+
+
+ModeratorWriteOffLineFormSet = forms.formset_factory(
+    ModeratorWriteOffForm,
+    formset=ModeratorWriteOffFormSet,
+    extra=3,
+)
+
+
 class StockMovementEditForm(forms.ModelForm):
     ingredient = IngredientChoiceField(
         queryset=Igridients.objects.all(),

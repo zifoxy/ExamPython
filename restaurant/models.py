@@ -275,6 +275,25 @@ class StockMovement(models.Model):
         )
 
     @classmethod
+    def create_write_off(cls, ingredient, quantity, user=None, note=''):
+        """Списание со склада: quantity > 0 записывается как отрицательное движение."""
+        from decimal import Decimal
+
+        qty = Decimal(quantity)
+        if qty <= 0:
+            raise ValueError('Количество списания должно быть больше нуля')
+        note = (note or '').strip()
+        if not note:
+            raise ValueError('Укажите причину списания')
+        return cls.objects.create(
+            ingredient=ingredient,
+            quantity=-qty,
+            reason=cls.REASON_WRITE_OFF,
+            created_by=user,
+            note=note,
+        )
+
+    @classmethod
     def create_revision(cls, ingredient, actual_quantity, user=None, note=''):
         """
         Бухгалтер вводит факт на полке.

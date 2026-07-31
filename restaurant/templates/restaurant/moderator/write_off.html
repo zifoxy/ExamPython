@@ -1,0 +1,184 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Списание ингредиентов{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'cabinet' %}">Кабинет</a></li>
+    <li class="breadcrumb-item active">Списание</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+          <h1 class="h3 mb-0">Списание ингредиентов</h1>
+          <button type="button" class="btn btn-sm btn-outline-cream" id="add-writeoff-row">
+            <i class="bi bi-plus-lg"></i> Добавить ингредиент
+          </button>
+        </div>
+        <p class="text-muted mb-4">
+          Выберите ингредиенты, укажите количество и <strong>обязательную причину</strong>.
+          После подтверждения остатки на складе уменьшатся.
+        </p>
+
+        <form method="post" novalidate id="writeoff-form">
+          {% csrf_token %}
+          {{ formset.management_form }}
+
+          {% if formset.non_form_errors %}
+            <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+          {% endif %}
+
+          <div id="writeoff-rows">
+            {% for form in formset %}
+              <div class="border rounded-3 p-3 mb-3 writeoff-row">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-6">
+                    <label class="form-label" for="{{ form.ingredient.id_for_label }}">Ингредиент</label>
+                    {{ form.ingredient }}
+                    {% if form.ingredient.errors %}
+                      <div class="text-danger small">{{ form.ingredient.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label" for="{{ form.quantity.id_for_label }}">Количество</label>
+                    {{ form.quantity }}
+                    {% if form.quantity.errors %}
+                      <div class="text-danger small">{{ form.quantity.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Ед.</label>
+                    <div class="form-control-plaintext unit-label">—</div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ form.reason.id_for_label }}">
+                      Причина списания <span class="text-danger">*</span>
+                    </label>
+                    {{ form.reason }}
+                    {% if form.reason.errors %}
+                      <div class="text-danger small">{{ form.reason.errors|striptags }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="btn btn-outline-cream mb-3" id="add-writeoff-row-bottom">
+            <i class="bi bi-plus-lg"></i> Добавить ещё ингредиент
+          </button>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-danger">Списать</button>
+            <a href="{% url 'cabinet' %}" class="btn btn-outline-secondary">Отмена</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Последние списания</h2>
+        {% if recent %}
+          <div class="list-group list-group-flush">
+            {% for m in recent %}
+              <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between gap-2">
+                  <strong>{{ m.ingredient.name }}</strong>
+                  <span class="text-danger">{{ m.quantity }} {{ m.ingredient.get_unit_display }}</span>
+                </div>
+                <div class="small text-muted mt-1">
+                  {{ m.created_at|date:"d.m.Y H:i" }}
+                  {% if m.created_by %} · {{ m.created_by.username }}{% endif %}
+                </div>
+                {% if m.note %}
+                  <div class="small mt-1">{{ m.note }}</div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">Списаний пока нет.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="writeoff-empty-form">
+  {% with form=formset.empty_form %}
+  <div class="border rounded-3 p-3 mb-3 writeoff-row">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label class="form-label" for="{{ form.ingredient.id_for_label }}">Ингредиент</label>
+        {{ form.ingredient }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.quantity.id_for_label }}">Количество</label>
+        {{ form.quantity }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Ед.</label>
+        <div class="form-control-plaintext unit-label">—</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="{{ form.reason.id_for_label }}">
+          Причина списания <span class="text-danger">*</span>
+        </label>
+        {{ form.reason }}
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+</template>
+
+<script>
+(function () {
+  var totalInput = document.querySelector('#id_form-TOTAL_FORMS');
+  var rows = document.getElementById('writeoff-rows');
+  var template = document.getElementById('writeoff-empty-form');
+  var addButtons = [
+    document.getElementById('add-writeoff-row'),
+    document.getElementById('add-writeoff-row-bottom'),
+  ].filter(Boolean);
+
+  function updateUnitLabel(select) {
+    var row = select.closest('.writeoff-row');
+    if (!row) return;
+    var label = row.querySelector('.unit-label');
+    if (!label) return;
+    var opt = select.options[select.selectedIndex];
+    label.textContent = (opt && opt.dataset.unit) ? opt.dataset.unit : '—';
+  }
+
+  function bindRow(row) {
+    var select = row.querySelector('select');
+    if (!select) return;
+    updateUnitLabel(select);
+    select.addEventListener('change', function () {
+      updateUnitLabel(select);
+    });
+  }
+
+  document.querySelectorAll('.writeoff-row').forEach(bindRow);
+
+  function addRow() {
+    if (!totalInput || !rows || !template) return;
+    var index = parseInt(totalInput.value, 10);
+    var html = template.innerHTML.replace(/__prefix__/g, index);
+    rows.insertAdjacentHTML('beforeend', html);
+    totalInput.value = index + 1;
+    bindRow(rows.lastElementChild);
+  }
+
+  addButtons.forEach(function (btn) {
+    btn.addEventListener('click', addRow);
+  });
+})();
+</script>
+{% endblock %}

@@ -30,6 +30,7 @@ from .forms import (
     MovementPeriodForm,
     RecipeItemFormSet,
     PurchaseLineFormSet,
+    ModeratorWriteOffLineFormSet,
     StockMovementEditForm,
     SupportMessageForm,
 )
@@ -400,6 +401,51 @@ def moderator_order_status(request, order_id):
 
 
 @role_required(Profile.ROLE_MODERATOR)
+def moderator_write_off(request):
+    """Ручное списание ингредиентов со склада с обязательной причиной."""
+    recent = (
+        StockMovement.objects
+        .filter(reason=StockMovement.REASON_WRITE_OFF)
+        .select_related('ingredient', 'created_by')
+        .order_by('-created_at')[:15]
+    )
+
+    if request.method == 'POST':
+        formset = ModeratorWriteOffLineFormSet(request.POST)
+        if formset.is_valid():
+            written = []
+            with transaction.atomic():
+                for form in formset:
+                    ingredient = form.cleaned_data.get('ingredient')
+                    quantity = form.cleaned_data.get('quantity')
+                    reason = form.cleaned_data.get('reason')
+                    if not ingredient or not quantity or not reason:
+                        continue
+                    StockMovement.create_write_off(
+                        ingredient=ingredient,
+                        quantity=quantity,
+                        user=request.user,
+                        note=reason,
+                    )
+                    written.append(
+                        f'{ingredient.name} −{quantity} {ingredient.get_unit_display()} '
+                        f'({reason})'
+                    )
+            messages.success(
+                request,
+                'Списание проведено: ' + '; '.join(written),
+            )
+            return redirect('moderator_write_off')
+    else:
+        formset = ModeratorWriteOffLineFormSet()
+
+    return render(request, 'restaurant/moderator/write_off.html', {
+        'formset': formset,
+        'recent': recent,
+    })
+
+
+@role_required(Profile.ROLE_MODERATOR)
 def dish_create(request):
     if request.method == 'POST':
         form = DishForm(request.POST, request.FILES)
@@ -538,6 +584,37 @@ def accountant_movements(request):
     )
     return render(request, 'restaurant/accountant/movements.html', {
         'movements': movements,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_write_offs(request):
+    """Журнал списаний: ингредиенты уже списаны со склада при создании движения."""
+    form = MovementPeriodForm(request.GET or None)
+    write_offs = (
+        StockMovement.objects
+        .filter(reason=StockMovement.REASON_WRITE_OFF)
+        .select_related('ingredient', 'created_by')
+        .order_by('-created_at')
+    )
+
+    if form.is_valid():
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        write_offs = write_offs.filter(
+            created_at__date__gte=date_from,
+            created_at__date__lte=date_to,
+        )
+
+    total_qty_by_unit = defaultdict(lambda: Decimal('0'))
+    for m in write_offs:
+        unit = m.ingredient.get_unit_display()
+        total_qty_by_unit[unit] += abs(m.quantity)
+
+    return render(request, 'restaurant/accountant/write_offs.html', {
+        'form': form,
+        'write_offs': write_offs,
+        'total_qty_by_unit': dict(total_qty_by_unit),
     })
 
 
