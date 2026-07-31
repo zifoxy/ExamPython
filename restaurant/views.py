@@ -581,10 +581,66 @@ def accountant_recipe(request, pk):
 
 @role_required(Profile.ROLE_ACCOUNTANT)
 def accountant_consumption(request):
-    """Расход ингредиентов по выполненным заказам (рецептура × порции)."""
+    """Расход ингредиентов по выполненным заказам за период."""
+    form = MovementPeriodForm(request.GET or None)
+    rows = []
+    orders_count = 0
+
+    if form.is_valid():
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        order_items = (
+            OrderItem.objects
+            .filter(
+                order__status='done',
+                order__created_at__date__gte=date_from,
+                order__created_at__date__lte=date_to,
+                dish__isnull=False,
+            )
+            .select_related('dish', 'order')
+            .prefetch_related('dish__recipe_items__igridients')
+        )
+        order_ids = set()
+        totals = defaultdict(lambda: {
+            'name': '',
+            'unit': '',
+            'quantity': Decimal('0'),
+        })
+        for oi in order_items:
+            order_ids.add(oi.order_id)
+            for ri in oi.dish.recipe_items.all():
+                ing = ri.igridients
+                totals[ing.pk]['name'] = ing.name
+                totals[ing.pk]['unit'] = ing.get_unit_display()
+                totals[ing.pk]['quantity'] += ri.quantity * oi.quantity
+
+        rows = sorted(totals.values(), key=lambda r: r['name'].lower())
+        orders_count = len(order_ids)
+
+    return render(request, 'restaurant/accountant/consumption.html', {
+        'form': form,
+        'rows': rows,
+        'orders_count': orders_count,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_consumption_export(request):
+    form = MovementPeriodForm(request.GET or None)
+    if not form.is_valid():
+        messages.error(request, 'Укажите корректный период или даты')
+        return redirect('accountant_consumption')
+
+    date_from = form.cleaned_data['date_from']
+    date_to = form.cleaned_data['date_to']
     order_items = (
         OrderItem.objects
-        .filter(order__status='done', dish__isnull=False)
+        .filter(
+            order__status='done',
+            order__created_at__date__gte=date_from,
+            order__created_at__date__lte=date_to,
+            dish__isnull=False,
+        )
         .select_related('dish')
         .prefetch_related('dish__recipe_items__igridients')
     )
@@ -601,9 +657,16 @@ def accountant_consumption(request):
             totals[ing.pk]['quantity'] += ri.quantity * oi.quantity
 
     rows = sorted(totals.values(), key=lambda r: r['name'].lower())
-    return render(request, 'restaurant/accountant/consumption.html', {
-        'rows': rows,
-    })
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = (
+        f'attachment; filename="consumption_{date_from}_{date_to}.csv"'
+    )
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['Ингредиент', 'Израсходовано', 'Ед.'])
+    for row in rows:
+        writer.writerow([row['name'], row['quantity'], row['unit']])
+    return response
 
 
 @role_required(Profile.ROLE_ACCOUNTANT)

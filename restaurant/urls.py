@@ -45,6 +45,7 @@ urlpatterns = [
     path('accountant/movements/<int:pk>/edit/', views.accountant_movement_edit, name='accountant_movement_edit'),
     path('accountant/dishes/<int:pk>/recipe/', views.accountant_recipe, name='accountant_recipe'),
     path('accountant/report/consumption/', views.accountant_consumption, name='accountant_consumption'),
+    path('accountant/report/consumption/export/', views.accountant_consumption_export, name='accountant_consumption_export'),
     path('accountant/report/income/', views.accountant_income, name='accountant_income'),
     path('accountant/report/income/export/', views.accountant_income_export, name='accountant_income_export'),
     path('accountant/report/revision-blank/', views.accountant_revision_blank, name='accountant_revision_blank'),

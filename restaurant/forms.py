@@ -1,9 +1,11 @@
 ﻿from decimal import Decimal
+from datetime import timedelta
 
 from django import forms
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from .models import Order, Dish, RecipeItem, Igridients, StockMovement
 
@@ -164,8 +166,30 @@ class RevisionForm(forms.Form):
 
 
 class MovementPeriodForm(forms.Form):
+    PERIOD_CUSTOM = ''
+    PERIOD_TODAY = 'today'
+    PERIOD_WEEK = 'week'
+    PERIOD_MONTH = 'month'
+    PERIOD_YEAR = 'year'
+
+    PERIOD_CHOICES = [
+        (PERIOD_CUSTOM, 'Свои даты'),
+        (PERIOD_TODAY, 'Сегодня'),
+        (PERIOD_WEEK, 'Последние 7 дней'),
+        (PERIOD_MONTH, 'Текущий месяц'),
+        (PERIOD_YEAR, 'Текущий год'),
+    ]
+
+    period = forms.ChoiceField(
+        label='Период',
+        choices=PERIOD_CHOICES,
+        required=False,
+        initial=PERIOD_CUSTOM,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
     date_from = forms.DateField(
         label='С',
+        required=False,
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control',
@@ -173,17 +197,45 @@ class MovementPeriodForm(forms.Form):
     )
     date_to = forms.DateField(
         label='По',
+        required=False,
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control',
         }),
     )
 
+    @staticmethod
+    def range_for_period(period, today=None):
+        today = today or timezone.localdate()
+        if period == MovementPeriodForm.PERIOD_TODAY:
+            return today, today
+        if period == MovementPeriodForm.PERIOD_WEEK:
+            return today - timedelta(days=6), today
+        if period == MovementPeriodForm.PERIOD_MONTH:
+            return today.replace(day=1), today
+        if period == MovementPeriodForm.PERIOD_YEAR:
+            return today.replace(month=1, day=1), today
+        return today, today
+
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get('date_from') and cleaned.get('date_to'):
-            if cleaned['date_from'] > cleaned['date_to']:
-                raise forms.ValidationError('Дата начала не может быть позже даты окончания')
+        period = cleaned.get('period') or self.PERIOD_CUSTOM
+        date_from = cleaned.get('date_from')
+        date_to = cleaned.get('date_to')
+
+        if period and period != self.PERIOD_CUSTOM:
+            date_from, date_to = self.range_for_period(period)
+            cleaned['date_from'] = date_from
+            cleaned['date_to'] = date_to
+        else:
+            if not date_from or not date_to:
+                raise forms.ValidationError(
+                    'Укажите даты или выберите готовый период'
+                )
+            if date_from > date_to:
+                raise forms.ValidationError(
+                    'Дата начала не может быть позже даты окончания'
+                )
         return cleaned
 
 
