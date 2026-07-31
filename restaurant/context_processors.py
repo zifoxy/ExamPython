@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 
 from .cart import Cart
@@ -13,6 +14,7 @@ def cart(request):
     is_accountant = False
     is_support = False
     support_unread = 0
+    support_join_notice = None
     if request.user.is_authenticated:
         try:
             user_profile = request.user.profile
@@ -35,6 +37,11 @@ def cart(request):
                     .filter(agent__isnull=True)
                     .count()
                 )
+            else:
+                agent_name = cache.get(f'support_agent_joined:{request.user.id}')
+                if agent_name:
+                    support_join_notice = agent_name
+                    cache.delete(f'support_agent_joined:{request.user.id}')
         except ObjectDoesNotExist:
             user_profile = None
 
@@ -43,4 +50,5 @@ def cart(request):
     context['is_accountant'] = is_accountant
     context['is_support'] = is_support
     context['support_unread'] = support_unread
+    context['support_join_notice'] = support_join_notice
     return context

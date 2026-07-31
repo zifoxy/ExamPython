@@ -111,13 +111,28 @@
   [data-theme="light"] .order-card {
     background: rgba(0, 0, 0, 0.03);
   }
-  .order-card:last-child { margin-bottom: 0; }
-  .order-items {
-    margin: 0.4rem 0 0;
-    padding-left: 1rem;
-    font-size: 0.85rem;
-    color: var(--fb-muted);
+  .chat-bubble.system {
+    align-self: center;
+    max-width: 90%;
+    text-align: center;
+    background: rgba(100, 160, 220, 0.18);
+    border: 1px solid rgba(100, 160, 220, 0.4);
+    font-size: 0.9rem;
   }
+  .chat-toast {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1080;
+    max-width: min(360px, calc(100vw - 2rem));
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: rgba(30, 90, 140, 0.95);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    display: none;
+  }
+  .chat-toast.show { display: block; }
 </style>
 {% endblock %}
 
@@ -180,6 +195,12 @@
     <div class="chat-messages" id="chat-messages">
       {% if chat_messages %}
         {% for msg in chat_messages %}
+          {% if 'подключился к чату' in msg.text and msg.is_from_support %}
+            <div class="chat-bubble system" data-id="{{ msg.id }}">
+              {{ msg.text }}
+              <div class="chat-meta mt-1 mb-0">{{ msg.created_at|date:"d.m.Y H:i" }}</div>
+            </div>
+          {% else %}
           <div class="chat-bubble {% if is_agent_view %}{% if msg.is_from_support %}mine{% else %}theirs{% endif %}{% else %}{% if not msg.is_from_support %}mine{% else %}theirs{% endif %}{% endif %}"
                data-id="{{ msg.id }}">
             <div class="chat-meta">
@@ -188,6 +209,7 @@
             </div>
             {{ msg.text }}
           </div>
+          {% endif %}
         {% endfor %}
       {% else %}
         <div class="chat-empty" id="chat-empty">
@@ -254,6 +276,8 @@
   {% endif %}
 </div>
 
+<div class="chat-toast" id="chat-join-toast" role="status" aria-live="polite"></div>
+
 <script>
 (function () {
   var shell = document.getElementById('chat-shell');
@@ -261,24 +285,49 @@
   var box = document.getElementById('chat-messages');
   var form = document.getElementById('chat-form');
   var statusEl = document.getElementById('chat-status');
+  var toastEl = document.getElementById('chat-join-toast');
   var pollUrl = shell.dataset.pollUrl;
   var isAgent = shell.dataset.isAgent === 'true';
   var lastId = 0;
+  var knownAgent = {% if conversation.agent %}'{{ conversation.agent.username|escapejs }}'{% else %}null{% endif %};
   box.querySelectorAll('.chat-bubble[data-id]').forEach(function (el) {
     lastId = Math.max(lastId, parseInt(el.dataset.id, 10) || 0);
   });
   box.scrollTop = box.scrollHeight;
 
+  function showJoinToast(agentName) {
+    if (isAgent || !toastEl) return;
+    toastEl.textContent = 'Оператор ' + agentName + ' подключился к чату';
+    toastEl.classList.add('show');
+    setTimeout(function () { toastEl.classList.remove('show'); }, 6000);
+    if (window.Notification && Notification.permission === 'granted') {
+      try {
+        new Notification('Поддержка FireBite', {
+          body: 'Оператор ' + agentName + ' подключился к чату',
+        });
+      } catch (e) {}
+    } else if (window.Notification && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
   function appendMessage(msg) {
     var empty = document.getElementById('chat-empty');
     if (empty) empty.remove();
-    var mine = isAgent ? msg.is_from_support : !msg.is_from_support;
     var div = document.createElement('div');
-    div.className = 'chat-bubble ' + (mine ? 'mine' : 'theirs');
     div.dataset.id = msg.id;
-    var who = msg.is_from_support ? 'Поддержка' : msg.sender;
-    div.innerHTML = '<div class="chat-meta">' + who + ' · ' + msg.created_at + '</div>' +
-      escapeHtml(msg.text);
+    if (msg.is_join_notice) {
+      div.className = 'chat-bubble system';
+      div.innerHTML = escapeHtml(msg.text) +
+        '<div class="chat-meta mt-1 mb-0">' + msg.created_at + '</div>';
+      if (!isAgent) showJoinToast(msg.sender);
+    } else {
+      var mine = isAgent ? msg.is_from_support : !msg.is_from_support;
+      div.className = 'chat-bubble ' + (mine ? 'mine' : 'theirs');
+      var who = msg.is_from_support ? 'Поддержка' : msg.sender;
+      div.innerHTML = '<div class="chat-meta">' + who + ' · ' + msg.created_at + '</div>' +
+        escapeHtml(msg.text);
+    }
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
     lastId = Math.max(lastId, msg.id);
@@ -297,6 +346,14 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         (data.messages || []).forEach(appendMessage);
+        if (!isAgent && data.agent && data.agent !== knownAgent) {
+          if (!knownAgent) {
+            // join-notice может уже показать toast; если сообщений нет — покажем здесь
+            var hasJoin = (data.messages || []).some(function (m) { return m.is_join_notice; });
+            if (!hasJoin) showJoinToast(data.agent);
+          }
+          knownAgent = data.agent;
+        }
         if (statusEl) {
           if (!isAgent && data.agent) {
             statusEl.textContent = 'Оператор: ' + data.agent;
@@ -328,6 +385,8 @@
             form.reset();
             var input = document.getElementById('support-message-input');
             if (input) input.focus();
+            // после первого ответа оператора подтянуть join-notice
+            poll();
           } else {
             window.location.reload();
           }

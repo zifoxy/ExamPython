@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db import transaction
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -659,6 +660,27 @@ def _is_support_user(user):
     return bool(profile and profile.is_active and profile.is_support)
 
 
+def _assign_support_agent(conversation, agent):
+    """Назначает оператора и уведомляет пользователя (один раз)."""
+    if conversation.agent_id:
+        return False
+    conversation.agent = agent
+    conversation.status = SupportConversation.STATUS_OPEN
+    conversation.save(update_fields=['agent', 'status', 'updated_at'])
+    SupportMessage.objects.create(
+        conversation=conversation,
+        sender=agent,
+        text=f'Оператор {agent.username} подключился к чату',
+        is_from_support=True,
+    )
+    cache.set(
+        f'support_agent_joined:{conversation.user_id}',
+        agent.username,
+        timeout=60 * 60 * 24,
+    )
+    return True
+
+
 def _serialize_support_message(msg):
     return {
         'id': msg.id,
@@ -666,6 +688,7 @@ def _serialize_support_message(msg):
         'is_from_support': msg.is_from_support,
         'sender': msg.sender.username,
         'created_at': msg.created_at.strftime('%d.%m.%Y %H:%M'),
+        'is_join_notice': msg.text.startswith('Оператор ') and 'подключился к чату' in msg.text,
     }
 
 
@@ -766,11 +789,10 @@ def support_conversation(request, pk):
     if request.method == 'POST':
         action = request.POST.get('action', 'send')
         if action == 'claim':
-            if conversation.agent_id is None:
-                conversation.agent = request.user
-                conversation.status = SupportConversation.STATUS_OPEN
-                conversation.save(update_fields=['agent', 'status', 'updated_at'])
-                messages.success(request, 'Вы подключились к чату')
+            if _assign_support_agent(conversation, request.user):
+                messages.success(request, 'Вы подключились к чату. Пользователь получит уведомление.')
+            else:
+                messages.info(request, 'Чат уже закреплён за оператором')
             return redirect('support_conversation', pk=pk)
 
         if action == 'close':
@@ -786,8 +808,7 @@ def support_conversation(request, pk):
 
         form = SupportMessageForm(request.POST)
         if form.is_valid():
-            if conversation.agent_id is None:
-                conversation.agent = request.user
+            _assign_support_agent(conversation, request.user)
             SupportMessage.objects.create(
                 conversation=conversation,
                 sender=request.user,
@@ -795,8 +816,10 @@ def support_conversation(request, pk):
                 is_from_support=True,
             )
             conversation.status = SupportConversation.STATUS_OPEN
-            conversation.save(update_fields=['agent', 'status', 'updated_at'])
+            conversation.save(update_fields=['status', 'updated_at'])
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # Отдаём оба новых сообщения после last id клиента нет — вернём последнее;
+                # полл подтянет join-notice. Для AJAX отправим последнее сообщение оператора.
                 last = conversation.messages.order_by('-created_at').first()
                 return JsonResponse({'ok': True, 'message': _serialize_support_message(last)})
             return redirect('support_conversation', pk=pk)
