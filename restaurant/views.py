@@ -9,6 +9,8 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db import transaction
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncDate
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from decimal import Decimal
@@ -602,6 +604,123 @@ def accountant_consumption(request):
     return render(request, 'restaurant/accountant/consumption.html', {
         'rows': rows,
     })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_income(request):
+    """Отчёт о доходах по выполненным заказам за период."""
+    form = MovementPeriodForm(request.GET or None)
+    orders = []
+    daily_rows = []
+    dish_rows = []
+    total_income = Decimal('0')
+    orders_count = 0
+    avg_check = Decimal('0')
+
+    if form.is_valid():
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        orders_qs = (
+            Order.objects
+            .filter(
+                status='done',
+                created_at__date__gte=date_from,
+                created_at__date__lte=date_to,
+            )
+            .prefetch_related('items')
+            .order_by('-created_at')
+        )
+        orders = list(orders_qs)
+        orders_count = len(orders)
+        total_income = sum((o.total_price for o in orders), Decimal('0'))
+        avg_check = (
+            (total_income / orders_count).quantize(Decimal('0.01'))
+            if orders_count
+            else Decimal('0')
+        )
+
+        daily_rows = list(
+            Order.objects
+            .filter(
+                status='done',
+                created_at__date__gte=date_from,
+                created_at__date__lte=date_to,
+            )
+            .annotate(day=TruncDate('created_at'))
+            .values('day')
+            .annotate(
+                orders_count=Count('id'),
+                income=Sum('total_price'),
+            )
+            .order_by('day')
+        )
+
+        dish_totals = defaultdict(lambda: {
+            'name': '',
+            'quantity': 0,
+            'income': Decimal('0'),
+        })
+        for order in orders:
+            for item in order.items.all():
+                key = item.dish_name
+                dish_totals[key]['name'] = item.dish_name
+                dish_totals[key]['quantity'] += item.quantity
+                dish_totals[key]['income'] += item.price * item.quantity
+        dish_rows = sorted(
+            dish_totals.values(),
+            key=lambda r: r['income'],
+            reverse=True,
+        )
+
+    return render(request, 'restaurant/accountant/income.html', {
+        'form': form,
+        'orders': orders,
+        'daily_rows': daily_rows,
+        'dish_rows': dish_rows,
+        'total_income': total_income,
+        'orders_count': orders_count,
+        'avg_check': avg_check,
+    })
+
+
+@role_required(Profile.ROLE_ACCOUNTANT)
+def accountant_income_export(request):
+    form = MovementPeriodForm(request.GET or None)
+    if not form.is_valid():
+        messages.error(request, 'Укажите корректный период дат')
+        return redirect('accountant_income')
+
+    date_from = form.cleaned_data['date_from']
+    date_to = form.cleaned_data['date_to']
+    orders = (
+        Order.objects
+        .filter(
+            status='done',
+            created_at__date__gte=date_from,
+            created_at__date__lte=date_to,
+        )
+        .order_by('created_at')
+    )
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = (
+        f'attachment; filename="income_{date_from}_{date_to}.csv"'
+    )
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['№ заказа', 'Дата', 'Клиент', 'Телефон', 'Сумма, ₽'])
+    total = Decimal('0')
+    for order in orders:
+        writer.writerow([
+            order.id,
+            order.created_at.strftime('%d.%m.%Y %H:%M'),
+            order.customer_name,
+            order.phone,
+            order.total_price,
+        ])
+        total += order.total_price
+    writer.writerow([])
+    writer.writerow(['Итого', '', '', '', total])
+    return response
 
 
 @role_required(Profile.ROLE_ACCOUNTANT)

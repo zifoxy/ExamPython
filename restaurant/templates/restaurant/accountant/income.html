@@ -1,0 +1,149 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Отчёт о доходах{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'accountant_ingredients' %}">Склад</a></li>
+    <li class="breadcrumb-item active">Доходы</li>
+  </ol>
+</nav>
+
+<h1 class="mb-2">Отчёт о доходах</h1>
+<p class="text-muted mb-4">
+  Суммы по выполненным заказам за выбранный период.
+</p>
+
+<form method="get" class="row g-3 align-items-end mb-4">
+  {% for field in form %}
+    <div class="col-auto">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+        <div class="text-danger small">{{ field.errors|striptags }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% if form.non_field_errors %}
+    <div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
+  {% endif %}
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Показать</button>
+    {% if form.is_valid %}
+      <a class="btn btn-outline-success"
+         href="{% url 'accountant_income_export' %}?date_from={{ form.cleaned_data.date_from|date:'Y-m-d' }}&date_to={{ form.cleaned_data.date_to|date:'Y-m-d' }}">
+        Скачать CSV
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+{% if form.is_valid %}
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Доход за период</div>
+          <div class="fs-3 fw-bold text-success">{{ total_income }} ₽</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Выполненных заказов</div>
+          <div class="fs-3 fw-bold">{{ orders_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Средний чек</div>
+          <div class="fs-3 fw-bold">{{ avg_check }} ₽</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if daily_rows %}
+    <h2 class="h5 mb-3">По дням</h2>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle bg-white shadow-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Дата</th>
+            <th>Заказов</th>
+            <th>Доход</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in daily_rows %}
+            <tr>
+              <td>{{ row.day|date:"d.m.Y" }}</td>
+              <td>{{ row.orders_count }}</td>
+              <td>{{ row.income }} ₽</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if dish_rows %}
+    <h2 class="h5 mb-3">По блюдам</h2>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle bg-white shadow-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Блюдо</th>
+            <th>Порций</th>
+            <th>Выручка</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dish_rows %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.quantity }}</td>
+              <td>{{ row.income }} ₽</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if orders %}
+    <h2 class="h5 mb-3">Заказы</h2>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle bg-white shadow-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Дата</th>
+            <th>Клиент</th>
+            <th>Телефон</th>
+            <th>Сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+            <tr>
+              <td>{{ order.id }}</td>
+              <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+              <td>{{ order.customer_name }}</td>
+              <td>{{ order.phone }}</td>
+              <td>{{ order.total_price }} ₽</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-secondary">За выбранный период выполненных заказов нет.</div>
+  {% endif %}
+{% endif %}
+
+<a href="{% url 'accountant_ingredients' %}" class="btn btn-outline-secondary mt-2">← К складу</a>
+{% endblock %}
