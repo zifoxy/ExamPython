@@ -34,10 +34,15 @@
       </thead>
       <tbody>
         {% for item in ingredients %}
-          <tr>
+          <tr {% if item.stock_quantity < 0 %}class="table-danger"{% endif %}>
             <td>{{ item.name }}</td>
             <td>{{ item.get_unit_display }}</td>
-            <td>{{ item.stock_quantity }}</td>
+            <td class="{% if item.stock_quantity < 0 %}text-danger fw-semibold{% endif %}">
+              {{ item.stock_quantity }}
+              {% if item.stock_quantity < 0 %}
+                <span class="badge text-bg-danger ms-1">минус</span>
+              {% endif %}
+            </td>
             <td class="text-end">
               <a href="{% url 'accountant_revision' item.pk %}" class="btn btn-sm btn-warning">
                 Ревизия

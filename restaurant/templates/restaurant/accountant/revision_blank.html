@@ -52,13 +52,18 @@
       </thead>
       <tbody>
         {% for row in rows %}
-          <tr>
+          <tr {% if row.stock_end < 0 or row.stock_start < 0 %}class="table-danger"{% endif %}>
             <td>{{ row.name }}</td>
             <td>{{ row.unit }}</td>
-            <td>{{ row.stock_start }}</td>
+            <td class="{% if row.stock_start < 0 %}text-danger fw-semibold{% endif %}">{{ row.stock_start }}</td>
             <td class="text-success">{{ row.plus }}</td>
             <td class="text-danger">{{ row.minus }}</td>
-            <td>{{ row.stock_end }}</td>
+            <td class="{% if row.stock_end < 0 %}text-danger fw-semibold{% endif %}">
+              {{ row.stock_end }}
+              {% if row.stock_end < 0 %}
+                <span class="badge text-bg-danger ms-1">минус</span>
+              {% endif %}
+            </td>
             <td></td>
             <td></td>
           </tr>
